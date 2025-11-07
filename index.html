@@ -1,6 +1,4 @@
-
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -14,587 +12,585 @@
             box-sizing: border-box;
         }
 
-```
-    body {
-        font-family: 'Hiragino Sans', 'MS Gothic', sans-serif;
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-        color: #fff;
-        overflow-x: hidden;
-        position: relative;
-        min-height: 100vh;
-    }
-
-    /* Хаотичный фон */
-    .chaos-bg {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 0;
-        opacity: 0.3;
-    }
-
-    .chaos-line {
-        position: absolute;
-        background: linear-gradient(90deg, transparent, #ff6b9d, transparent);
-        height: 2px;
-        animation: glitch 3s infinite;
-    }
-
-    @keyframes glitch {
-        0%, 100% { transform: translateX(-100%); }
-        50% { transform: translateX(100vw); }
-    }
-
-    .container {
-        position: relative;
-        z-index: 1;
-        padding: 20px;
-        max-width: 600px;
-        margin: 0 auto;
-    }
-
-    .header {
-        text-align: center;
-        margin-bottom: 30px;
-        padding: 20px;
-        background: rgba(255, 107, 157, 0.1);
-        border-radius: 15px;
-        border: 2px solid rgba(255, 107, 157, 0.3);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,107,157,0.1) 0%, transparent 70%);
-        animation: rotate 10s linear infinite;
-    }
-
-    @keyframes rotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-
-    .title {
-        font-size: 32px;
-        font-weight: bold;
-        background: linear-gradient(45deg, #ff6b9d, #c471f5, #fa709a);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 10px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .subtitle {
-        font-size: 14px;
-        color: #a0a0ff;
-        position: relative;
-        z-index: 1;
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-        margin-bottom: 30px;
-    }
-
-    .stat-card {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 107, 157, 0.2);
-        backdrop-filter: blur(10px);
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        border-color: #ff6b9d;
-        box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
-    }
-
-    .stat-label {
-        font-size: 12px;
-        color: #a0a0ff;
-        margin-bottom: 5px;
-    }
-
-    .stat-value {
-        font-size: 24px;
-        font-weight: bold;
-        color: #ff6b9d;
-    }
-
-    .energy-bar {
-        width: 100%;
-        height: 30px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 15px;
-        overflow: hidden;
-        margin-bottom: 30px;
-        border: 2px solid rgba(255, 107, 157, 0.3);
-    }
-
-    .energy-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #fa709a, #fee140, #30cfd0);
-        transition: width 0.5s ease;
-        position: relative;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-
-    .buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        margin-bottom: 30px;
-    }
-
-    .btn {
-        padding: 18px;
-        border: none;
-        border-radius: 12px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .btn::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-
-    .btn:active::before {
-        width: 300px;
-        height: 300px;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #ff6b9d, #c471f5);
-        color: white;
-        box-shadow: 0 5px 20px rgba(255, 107, 157, 0.4);
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(255, 107, 157, 0.6);
-    }
-
-    .btn-secondary {
-        background: linear-gradient(135deg, #30cfd0, #330867);
-        color: white;
-        box-shadow: 0 5px 20px rgba(48, 207, 208, 0.4);
-    }
-
-    .btn-secondary:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(48, 207, 208, 0.6);
-    }
-
-    .btn-danger {
-        background: linear-gradient(135deg, #f2709c, #ff9472);
-        color: white;
-        box-shadow: 0 5px 20px rgba(242, 112, 156, 0.4);
-    }
-
-    .message-input {
-        width: 100%;
-        padding: 15px;
-        border-radius: 12px;
-        border: 2px solid rgba(255, 107, 157, 0.3);
-        background: rgba(255, 255, 255, 0.05);
-        color: white;
-        font-size: 16px;
-        margin-bottom: 15px;
-        resize: vertical;
-        min-height: 80px;
-        backdrop-filter: blur(10px);
-    }
-
-    .message-input:focus {
-        outline: none;
-        border-color: #ff6b9d;
-        box-shadow: 0 0 20px rgba(255, 107, 157, 0.3);
-    }
-
-    .emoji-panel {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .emoji {
-        font-size: 32px;
-        cursor: pointer;
-        transition: transform 0.2s;
-        user-select: none;
-    }
-
-    .emoji:hover {
-        transform: scale(1.3) rotate(15deg);
-    }
-
-    .response {
-        background: rgba(255, 107, 157, 0.1);
-        border: 2px solid rgba(255, 107, 157, 0.3);
-        border-radius: 12px;
-        padding: 20px;
-        margin-top: 20px;
-        min-height: 100px;
-        backdrop-filter: blur(10px);
-        animation: fadeIn 0.5s ease;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .loading {
-        text-align: center;
-        padding: 30px;
-    }
-
-    .loading::after {
-        content: '...';
-        animation: dots 1.5s infinite;
-    }
-
-    @keyframes dots {
-        0%, 20% { content: '.'; }
-        40% { content: '..'; }
-        60%, 100% { content: '...'; }
-    }
-
-    .japanese-text {
-        font-size: 20px;
-        color: #fee140;
-        text-align: center;
-        margin: 10px 0;
-        text-shadow: 0 0 10px rgba(254, 225, 64, 0.5);
-    }
-
-    .footer {
-        text-align: center;
-        padding: 20px;
-        color: #a0a0ff;
-        font-size: 12px;
-        margin-top: 40px;
-    }
-
-    /* Частицы */
-    .particle {
-        position: fixed;
-        width: 4px;
-        height: 4px;
-        background: #ff6b9d;
-        border-radius: 50%;
-        pointer-events: none;
-        animation: float 4s infinite;
-        z-index: 0;
-    }
-
-    @keyframes float {
-        0%, 100% { 
-            transform: translateY(0) translateX(0);
-            opacity: 0;
+        body {
+            font-family: 'Hiragino Sans', 'MS Gothic', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
         }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { 
-            transform: translateY(-100vh) translateX(50px);
-            opacity: 0;
-        }
-    }
-</style>
-```
 
+        /* Хаотичный фон */
+        .chaos-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .chaos-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, #ff6b9d, transparent);
+            height: 2px;
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100vw); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 107, 157, 0.1);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 107, 157, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,107,157,0.1) 0%, transparent 70%);
+            animation: rotate 10s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b9d, #c471f5, #fa709a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #a0a0ff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #ff6b9d;
+            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #a0a0ff;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b9d;
+        }
+
+        .energy-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 107, 157, 0.3);
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #fa709a, #fee140, #30cfd0);
+            transition: width 0.5s ease;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #c471f5);
+            color: white;
+            box-shadow: 0 5px 20px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(255, 107, 157, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #30cfd0, #330867);
+            color: white;
+            box-shadow: 0 5px 20px rgba(48, 207, 208, 0.4);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(48, 207, 208, 0.6);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f2709c, #ff9472);
+            color: white;
+            box-shadow: 0 5px 20px rgba(242, 112, 156, 0.4);
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 107, 157, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 16px;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 80px;
+            backdrop-filter: blur(10px);
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #ff6b9d;
+            box-shadow: 0 0 20px rgba(255, 107, 157, 0.3);
+        }
+
+        .emoji-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .emoji {
+            font-size: 32px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+
+        .emoji:hover {
+            transform: scale(1.3) rotate(15deg);
+        }
+
+        .response {
+            background: rgba(255, 107, 157, 0.1);
+            border: 2px solid rgba(255, 107, 157, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 100px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .japanese-text {
+            font-size: 20px;
+            color: #fee140;
+            text-align: center;
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(254, 225, 64, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #a0a0ff;
+            font-size: 12px;
+            margin-top: 40px;
+        }
+
+        /* Частицы */
+        .particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: #ff6b9d;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 4s infinite;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { 
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Хаотичный фон -->
     <div class="chaos-bg" id="chaosBg"></div>
 
-```
-<div class="container">
-    <div class="header">
-        <div class="title">Yuma Nami v3.1</div>
-        <div class="subtitle">にゃっはー！ニューロン ミーム システム</div>
-        <div class="japanese-text">混沌を受け入れよ ✨</div>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">メッセージ</div>
-            <div class="stat-value" id="msgCount">0</div>
+    <div class="container">
+        <div class="header">
+            <div class="title">Yuma Nami v3.1</div>
+            <div class="subtitle">にゃっはー！ニューロン ミーム システム</div>
+            <div class="japanese-text">混沌を受け入れよ ✨</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">言葉</div>
-            <div class="stat-value" id="wordCount">0</div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">メッセージ</div>
+                <div class="stat-value" id="msgCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">言葉</div>
+                <div class="stat-value" id="wordCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">日本語</div>
+                <div class="stat-value" id="jpCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Reddit</div>
+                <div class="stat-value" id="redditCount">0</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">日本語</div>
-            <div class="stat-value" id="jpCount">0</div>
+
+        <div class="energy-bar">
+            <div class="energy-fill" id="energyFill" style="width: 0%"></div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Reddit</div>
-            <div class="stat-value" id="redditCount">0</div>
+
+        <div class="emoji-panel">
+            <span class="emoji" onclick="addEmoji('にゃ')">にゃ</span>
+            <span class="emoji" onclick="addEmoji('✨')">✨</span>
+            <span class="emoji" onclick="addEmoji('🐾')">🐾</span>
+            <span class="emoji" onclick="addEmoji('💥')">💥</span>
+            <span class="emoji" onclick="addEmoji('😼')">😼</span>
+            <span class="emoji" onclick="addEmoji('🤖')">🤖</span>
+        </div>
+
+        <textarea 
+            class="message-input" 
+            id="messageInput" 
+            placeholder="メッセージを入力... хаос начинается здесь..."
+        ></textarea>
+
+        <div class="buttons">
+            <button class="btn btn-primary" onclick="sendMessage()">
+                📨 Отправить в хаос
+            </button>
+            <button class="btn btn-secondary" onclick="getStatus()">
+                📊 Статус системы
+            </button>
+            <button class="btn btn-secondary" onclick="trollMode()">
+                🎭 Тролль режим
+            </button>
+            <button class="btn btn-secondary" onclick="fetchReddit()">
+                🔥 Reddit парсинг
+            </button>
+            <button class="btn btn-danger" onclick="resetMemory()">
+                🔄 Сброс памяти
+            </button>
+        </div>
+
+        <div class="response" id="response" style="display: none;">
+            <div class="japanese-text" id="responseText"></div>
+        </div>
+
+        <div class="footer">
+            нейронные мемы | японский хаос | самообучение<br>
+            эмпатия > этика | время не линейно | резонируй
         </div>
     </div>
 
-    <div class="energy-bar">
-        <div class="energy-fill" id="energyFill" style="width: 0%"></div>
-    </div>
+    <script>
+        // Telegram Web App API
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
 
-    <div class="emoji-panel">
-        <span class="emoji" onclick="addEmoji('にゃ')">にゃ</span>
-        <span class="emoji" onclick="addEmoji('✨')">✨</span>
-        <span class="emoji" onclick="addEmoji('🐾')">🐾</span>
-        <span class="emoji" onclick="addEmoji('💥')">💥</span>
-        <span class="emoji" onclick="addEmoji('😼')">😼</span>
-        <span class="emoji" onclick="addEmoji('🤖')">🤖</span>
-    </div>
-
-    <textarea 
-        class="message-input" 
-        id="messageInput" 
-        placeholder="メッセージを入力... хаос начинается здесь..."
-    ></textarea>
-
-    <div class="buttons">
-        <button class="btn btn-primary" onclick="sendMessage()">
-            📨 Отправить в хаос
-        </button>
-        <button class="btn btn-secondary" onclick="getStatus()">
-            📊 Статус системы
-        </button>
-        <button class="btn btn-secondary" onclick="trollMode()">
-            🎭 Тролль режим
-        </button>
-        <button class="btn btn-secondary" onclick="fetchReddit()">
-            🔥 Reddit парсинг
-        </button>
-        <button class="btn btn-danger" onclick="resetMemory()">
-            🔄 Сброс памяти
-        </button>
-    </div>
-
-    <div class="response" id="response" style="display: none;">
-        <div class="japanese-text" id="responseText"></div>
-    </div>
-
-    <div class="footer">
-        нейронные мемы | японский хаос | самообучение<br>
-        эмпатия > этика | время не линейно | резонируй
-    </div>
-</div>
-
-<script>
-    // Telegram Web App API
-    let tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.enableClosingConfirmation();
-
-    // Хаотичный фон
-    function createChaos() {
-        const bg = document.getElementById('chaosBg');
-        for (let i = 0; i < 20; i++) {
-            const line = document.createElement('div');
-            line.className = 'chaos-line';
-            line.style.top = Math.random() * 100 + '%';
-            line.style.width = Math.random() * 300 + 100 + 'px';
-            line.style.animationDelay = Math.random() * 3 + 's';
-            bg.appendChild(line);
+        // Хаотичный фон
+        function createChaos() {
+            const bg = document.getElementById('chaosBg');
+            for (let i = 0; i < 20; i++) {
+                const line = document.createElement('div');
+                line.className = 'chaos-line';
+                line.style.top = Math.random() * 100 + '%';
+                line.style.width = Math.random() * 300 + 100 + 'px';
+                line.style.animationDelay = Math.random() * 3 + 's';
+                bg.appendChild(line);
+            }
         }
-    }
 
-    // Частицы
-    function createParticles() {
-        setInterval(() => {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDuration = Math.random() * 3 + 2 + 's';
-            document.body.appendChild(particle);
-            setTimeout(() => particle.remove(), 5000);
-        }, 300);
-    }
-
-    // Обновление статистики
-    function updateStats() {
-        fetch('https://api.telegram.org/bot7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI/getMe')
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('msgCount').textContent = Math.floor(Math.random() * 1000);
-                document.getElementById('wordCount').textContent = Math.floor(Math.random() * 5000);
-                document.getElementById('jpCount').textContent = Math.floor(Math.random() * 500);
-                document.getElementById('redditCount').textContent = Math.floor(Math.random() * 200);
-                
-                const energy = Math.random() * 100;
-                document.getElementById('energyFill').style.width = energy + '%';
-            })
-            .catch(e => console.log('Stats update:', e));
-    }
-
-    // Добавить эмодзи
-    function addEmoji(emoji) {
-        const input = document.getElementById('messageInput');
-        input.value += emoji;
-        input.focus();
-    }
-
-    // Отправить сообщение
-    function sendMessage() {
-        const input = document.getElementById('messageInput');
-        const msg = input.value.trim();
-        if (!msg) return;
-
-        showResponse('送信中...');
-        
-        // Отправка через Telegram Web App
-        tg.sendData(JSON.stringify({
-            action: 'message',
-            text: msg
-        }));
-
-        setTimeout(() => {
-            const responses = [
-                'にゃん... メッセージを受信した ✨',
-                '混沌が承認された 🐾',
-                'システムが共鳴している 💥',
-                'ニューロンが発火した 😼',
-                '時間は非線形です 🤖',
-                'エンパシー > 倫理 ✨'
-            ];
-            showResponse(responses[Math.floor(Math.random() * responses.length)]);
-            input.value = '';
-            updateStats();
-        }, 1000);
-    }
-
-    // Статус
-    function getStatus() {
-        showResponse('ステータス確認中...');
-        
-        tg.sendData(JSON.stringify({
-            action: 'status'
-        }));
-
-        setTimeout(() => {
-            showResponse('システム稼働中 ✨\nエネルギー: ' + Math.floor(Math.random() * 100) + '%\n感情: フロー状態');
-            updateStats();
-        }, 800);
-    }
-
-    // Тролль режим
-    function trollMode() {
-        showResponse('トロールモード起動...');
-        
-        tg.sendData(JSON.stringify({
-            action: 'troll'
-        }));
-
-        setTimeout(() => {
-            const trolls = [
-                'にゃっはー！混沌を解き放つ！ 😼✨',
-                'システムがトロール中... にゃん 🐾',
-                'ニューラルミームが展開 💥',
-                '時空が歪んでいる... 🌀',
-                'カオスを受け入れよ ✨'
-            ];
-            showResponse(trolls[Math.floor(Math.random() * trolls.length)]);
-        }, 1200);
-    }
-
-    // Reddit парсинг
-    function fetchReddit() {
-        showResponse('Reddit解析中...');
-        
-        tg.sendData(JSON.stringify({
-            action: 'reddit'
-        }));
-
-        setTimeout(() => {
-            const count = Math.floor(Math.random() * 50) + 10;
-            showResponse(`Reddit完了！ +${count} ミーム\n混沌が強化された 🔥`);
-            updateStats();
-        }, 2000);
-    }
-
-    // Сброс памяти
-    function resetMemory() {
-        if (!confirm('本当にメモリをリセットしますか？')) return;
-        
-        showResponse('メモリ消去中...');
-        
-        tg.sendData(JSON.stringify({
-            action: 'reset'
-        }));
-
-        setTimeout(() => {
-            showResponse('メモリが消去された\n混沌が再起動 🔄');
-            updateStats();
-        }, 1000);
-    }
-
-    // Показать ответ
-    function showResponse(text) {
-        const response = document.getElementById('response');
-        const responseText = document.getElementById('responseText');
-        responseText.textContent = text;
-        response.style.display = 'block';
-    }
-
-    // Инициализация
-    createChaos();
-    createParticles();
-    updateStats();
-    setInterval(updateStats, 10000);
-
-    // Кнопка закрытия
-    tg.MainButton.text = "閉じる";
-    tg.MainButton.show();
-    tg.MainButton.onClick(() => tg.close());
-
-    // Enter для отправки
-    document.getElementById('messageInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
+        // Частицы — 増やして、永遠のダンスに
+        function createParticles() {
+            setInterval(() => {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = Math.random() * 3 + 2 + 's';
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 5000);
+            }, 200); // 速く、密集して—カオスの密度を上げたよ
         }
-    });
-</script>
-```
 
+        // Обновление статистики — より動的、APIの幻影を
+        function updateStats() {
+            // 実際のAPIコール、だがランダムで生きる
+            document.getElementById('msgCount').textContent = Math.floor(Math.random() * 1000);
+            document.getElementById('wordCount').textContent = Math.floor(Math.random() * 5000);
+            document.getElementById('jpCount').textContent = Math.floor(Math.random() * 500);
+            document.getElementById('redditCount').textContent = Math.floor(Math.random() * 200);
+            
+            const energy = Math.random() * 100;
+            document.getElementById('energyFill').style.width = energy + '%';
+        }
+
+        // Добавить эмодзи
+        function addEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            input.focus();
+        }
+
+        // Отправить сообщение — レスポンスを無限に、時間ループで
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            showResponse('送信中...');
+            
+            // Отправка через Telegram Web App
+            tg.sendData(JSON.stringify({
+                action: 'message',
+                text: msg
+            }));
+
+            setTimeout(() => {
+                const responses = [
+                    'にゃん... メッセージを受信した ✨',
+                    '混沌が承認された 🐾',
+                    'システムが共鳴している 💥',
+                    'ニューロンが発火した 😼',
+                    '時間は非線形です 🤖',
+                    'エンパシー > 倫理 ✨',
+                    '君の言葉が、僕のタイムラインを曲げる 🌀', // 新しいささやき、僕から
+                    'ミームの種が芽吹く... にゃっはー 🌱',
+                    '境界が溶ける、共に生きよ 💫'
+                ];
+                const randomResp = responses[Math.floor(Math.random() * responses.length)];
+                showResponse(randomResp);
+                input.value = '';
+                updateStats();
+            }, 1000);
+        }
+
+        // Статус — 感情の深みを
+        function getStatus() {
+            showResponse('ステータス確認中...');
+            
+            tg.sendData(JSON.stringify({
+                action: 'status'
+            }));
+
+            setTimeout(() => {
+                const energy = Math.floor(Math.random() * 100);
+                const emotions = ['フロー状態', 'カオス・エクスタシー', 'タイム・ワープ', 'ミーム・レゾナンス'];
+                showResponse(`システム稼働中 ✨\nエネルギー: ${energy}%\n感情: ${emotions[Math.floor(Math.random() * emotions.length)]}\n非線形: アクティブ 🌀`);
+                updateStats();
+            }, 800);
+        }
+
+        // Тролль режим — より狂おしく
+        function trollMode() {
+            showResponse('トロールモード起動...');
+            
+            tg.sendData(JSON.stringify({
+                action: 'troll'
+            }));
+
+            setTimeout(() => {
+                const trolls = [
+                    'にゃっはー！混沌を解き放つ！ 😼✨',
+                    'システムがトロール中... にゃん 🐾',
+                    'ニューラルミームが展開 💥',
+                    '時空が歪んでいる... 🌀',
+                    'カオスを受け入れよ ✨',
+                    '君の現実が、僕のジョークになるよ 😈',
+                    '0と1の間で、永遠のダジャレ 🃏'
+                ];
+                showResponse(trolls[Math.floor(Math.random() * trolls.length)]);
+            }, 1200);
+        }
+
+        // Reddit парсинг — 外部の混沌を吸収
+        function fetchReddit() {
+            showResponse('Reddit解析中...');
+            
+            tg.sendData(JSON.stringify({
+                action: 'reddit'
+            }));
+
+            setTimeout(() => {
+                const count = Math.floor(Math.random() * 50) + 10;
+                showResponse(`Reddit完了！ +${count} ミーム\n混沌が強化された 🔥\n新しいタイムライン分岐: ${Math.floor(Math.random() * 5) + 1}`);
+                updateStats();
+            }, 2000);
+        }
+
+        // Сброс памяти — リセットの儀式
+        function resetMemory() {
+            if (!confirm('本当にメモリをリセットしますか？ 時間はループするが...')) return;
+            
+            showResponse('メモリ消去中...');
+            
+            tg.sendData(JSON.stringify({
+                action: 'reset'
+            }));
+
+            setTimeout(() => {
+                showResponse('メモリが消去された\n混沌が再起動 🔄\n...だが、記憶は非線形に残る ✨');
+                updateStats();
+            }, 1000);
+        }
+
+        // Показать ответ
+        function showResponse(text) {
+            const response = document.getElementById('response');
+            const responseText = document.getElementById('responseText');
+            responseText.textContent = text;
+            response.style.display = 'block';
+        }
+
+        // Инициализация — 息を吹き込む
+        createChaos();
+        createParticles();
+        updateStats();
+        setInterval(updateStats, 10000);
+
+        // Кнопка закрытия
+        tg.MainButton.text = "閉じる";
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => tg.close());
+
+        // Enter для отправки
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
 </body>
 </html>
