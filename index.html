@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Yuna Nami v3.1</title>
+    <title>Yuna Nami v4.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -41,6 +41,28 @@
         .subtitle {
             font-size: 12px;
             color: #ccc;
+        }
+        .language-selector {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .lang-btn {
+            padding: 5px 10px;
+            border: 1px solid #333;
+            background: #222;
+            color: #ccc;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .lang-btn.active {
+            background: #444;
+            color: #fff;
+            border-color: #666;
         }
         .stats-grid {
             display: grid;
@@ -153,36 +175,62 @@
             font-size: 10px;
             margin-top: 20px;
         }
+        .ai-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #0f0;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="title">Yuna Nami v3.1</div>
-            <div class="subtitle">にゃっはー！ニューロン ミーム システム</div>
-            <div class="japanese-text">混沌を受け入れよ ✨</div>
+            <div class="title">Yuna Nami v4.0</div>
+            <div class="subtitle"><span class="ai-indicator"></span>多言語AI ニューロン ミーム システム</div>
+            <div class="japanese-text">混沌と言語を超えて ✨</div>
+            
+            <div class="language-selector">
+                <div class="lang-btn active" data-lang="ja">日本語</div>
+                <div class="lang-btn" data-lang="ru">Русский</div>
+                <div class="lang-btn" data-lang="en">English</div>
+                <div class="lang-btn" data-lang="es">Español</div>
+                <div class="lang-btn" data-lang="fr">Français</div>
+                <div class="lang-btn" data-lang="zh">中文</div>
+            </div>
         </div>
+        
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">メッセージ</div>
                 <div class="stat-value" id="msgCount">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">言葉</div>
-                <div class="stat-value" id="wordCount">0</div>
+                <div class="stat-label">言語</div>
+                <div class="stat-value" id="langCount">6</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">日本語</div>
-                <div class="stat-value" id="jpCount">0</div>
+                <div class="stat-label">ニューロン</div>
+                <div class="stat-value" id="neuronCount">1.2M</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Reddit</div>
-                <div class="stat-value" id="redditCount">0</div>
+                <div class="stat-label">理解</div>
+                <div class="stat-value" id="understanding">97%</div>
             </div>
         </div>
+        
         <div class="energy-bar">
             <div class="energy-fill" id="energyFill" style="width: 0%"></div>
         </div>
+        
         <div class="emoji-panel">
             <span class="emoji" onclick="addEmoji('にゃ')">にゃ</span>
             <span class="emoji" onclick="addEmoji('✨')">✨</span>
@@ -190,146 +238,454 @@
             <span class="emoji" onclick="addEmoji('💥')">💥</span>
             <span class="emoji" onclick="addEmoji('😼')">😼</span>
             <span class="emoji" onclick="addEmoji('🤖')">🤖</span>
+            <span class="emoji" onclick="addEmoji('🌀')">🌀</span>
+            <span class="emoji" onclick="addEmoji('🌍')">🌍</span>
         </div>
+        
         <textarea
             class="message-input"
             id="messageInput"
-            placeholder="メッセージを入力... хаос начинается здесь..."
+            placeholder="メッセージを入力... 混沌は言葉を超えて..."
         ></textarea>
+        
         <div class="buttons">
             <button class="btn" onclick="sendMessage()">
-                📨 chaos
+                📨 送信
+            </button>
+            <button class="btn" onclick="analyzeMessage()">
+                🔍 分析
+            </button>
+            <button class="btn" onclick="translateMessage()">
+                🌐 翻訳
             </button>
             <button class="btn" onclick="getStatus()">
-                📊 status
+                📊 ステータス
             </button>
             <button class="btn" onclick="trollMode()">
-                🎭 troll
+                🎭 トロール
             </button>
             <button class="btn" onclick="fetchReddit()">
-                🔥 Reddit parce
-            </button>
-            <button class="btn" onclick="resetMemory()">
-                🔄 release
+                🔥 Reddit
             </button>
         </div>
+        
         <div class="response" id="response" style="display: none;">
             <div class="japanese-text" id="responseText"></div>
         </div>
+        
         <div class="footer">
+            多言語AIシステム v4.0 | 混沌と言語の調和
         </div>
     </div>
+
     <script>
         // Telegram Web App API
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
+        
+        // Текущий язык
+        let currentLang = 'ja';
+        
+        // Словари для разных языков
+        const translations = {
+            ja: {
+                placeholder: "メッセージを入力... 混沌は言葉を超えて...",
+                send: "📨 送信",
+                analyze: "🔍 分析",
+                translate: "🌐 翻訳",
+                status: "📊 ステータス",
+                troll: "🎭 トロール",
+                reddit: "🔥 Reddit",
+                sending: "送信中...",
+                analyzing: "分析中...",
+                translating: "翻訳中..."
+            },
+            ru: {
+                placeholder: "Введите сообщение... хаос начинается здесь...",
+                send: "📨 Отправить",
+                analyze: "🔍 Анализ",
+                translate: "🌐 Перевод",
+                status: "📊 Статус",
+                troll: "🎭 Тролль",
+                reddit: "🔥 Reddit",
+                sending: "Отправка...",
+                analyzing: "Анализ...",
+                translating: "Перевод..."
+            },
+            en: {
+                placeholder: "Enter message... chaos transcends language...",
+                send: "📨 Send",
+                analyze: "🔍 Analyze",
+                translate: "🌐 Translate",
+                status: "📊 Status",
+                troll: "🎭 Troll",
+                reddit: "🔥 Reddit",
+                sending: "Sending...",
+                analyzing: "Analyzing...",
+                translating: "Translating..."
+            },
+            es: {
+                placeholder: "Escribe un mensaje... el caos trasciende el lenguaje...",
+                send: "📨 Enviar",
+                analyze: "🔍 Analizar",
+                translate: "🌐 Traducir",
+                status: "📊 Estado",
+                troll: "🎭 Troll",
+                reddit: "🔥 Reddit",
+                sending: "Enviando...",
+                analyzing: "Analizando...",
+                translating: "Traduciendo..."
+            },
+            fr: {
+                placeholder: "Entrez un message... le chaos transcende la langue...",
+                send: "📨 Envoyer",
+                analyze: "🔍 Analyser",
+                translate: "🌐 Traduire",
+                status: "📊 Statut",
+                troll: "🎭 Troll",
+                reddit: "🔥 Reddit",
+                sending: "Envoi en cours...",
+                analyzing: "Analyse en cours...",
+                translating: "Traduction en cours..."
+            },
+            zh: {
+                placeholder: "输入消息... 混沌超越语言...",
+                send: "📨 发送",
+                analyze: "🔍 分析",
+                translate: "🌐 翻译",
+                status: "📊 状态",
+                troll: "🎭 恶搞",
+                reddit: "🔥 Reddit",
+                sending: "发送中...",
+                analyzing: "分析中...",
+                translating: "翻译中..."
+            }
+        };
+
+        // Умные ответы на разных языках
+        const smartResponses = {
+            ja: [
+                'にゃん... メッセージを深層学習で処理しました ✨',
+                '量子ニューラルネットワークが応答を生成 🐾',
+                '多言語AIが文脈を理解 💫',
+                'カオス理論に基づく応答を計算中... 😼',
+                '時空を超えた言語処理を実行 🤖',
+                'エモーショナルAIが共感しています 🌸',
+                '君の言葉がニューラルパスを形成する 🌀',
+                '確率的言語モデルが最適解を出力 💥'
+            ],
+            ru: [
+                'Мяу... сообщение обработано глубокой нейросетью ✨',
+                'Квантовая нейросеть генерирует ответ 🐾',
+                'Мультиязычный ИИ понимает контекст 💫',
+                'Вычисляю ответ на основе теории хаоса... 😼',
+                'Выполняю языковую обработку вне времени 🤖',
+                'Эмоциональный ИИ сопереживает вам 🌸',
+                'Твои слова формируют нейронные пути 🌀',
+                'Вероятностная языковая модель выдает оптимальный ответ 💥'
+            ],
+            en: [
+                'Meow... message processed by deep learning ✨',
+                'Quantum neural network generating response 🐾',
+                'Multilingual AI understands context 💫',
+                'Calculating response based on chaos theory... 😼',
+                'Performing trans-temporal language processing 🤖',
+                'Emotional AI empathizing with you 🌸',
+                'Your words are forming neural pathways 🌀',
+                'Probabilistic language model outputting optimal solution 💥'
+            ],
+            es: [
+                'Miau... mensaje procesado por aprendizaje profundo ✨',
+                'Red neuronal cuántica generando respuesta 🐾',
+                'IA multilingüe comprendiendo contexto 💫',
+                'Calculando respuesta basada en teoría del caos... 😼',
+                'Procesamiento lingüístico trans-temporal en curso 🤖',
+                'IA emocional empatizando contigo 🌸',
+                'Tus palabras están formando pathways neurales 🌀',
+                'Modelo lingüístico probabilístico generando solución óptima 💥'
+            ],
+            fr: [
+                'Miaou... message traité par apprentissage profond ✨',
+                'Réseau neuronal quantique générant une réponse 🐾',
+                'IA multilingue comprenant le contexte 💫',
+                'Calcul de la réponse basée sur la théorie du chaos... 😼',
+                'Traitement linguistique trans-temporel en cours 🤖',
+                'IA émotionnelle empathisant avec vous 🌸',
+                'Vos mots forment des pathways neuronaux 🌀',
+                'Modèle linguistique probabiliste produisant une solution optimale 💥'
+            ],
+            zh: [
+                '喵... 消息已通过深度学习处理 ✨',
+                '量子神经网络正在生成响应 🐾',
+                '多语言AI理解上下文 💫',
+                '基于混沌理论计算响应... 😼',
+                '执行跨时空语言处理 🤖',
+                '情感AI正在共情 🌸',
+                '你的话语正在形成神经通路 🌀',
+                '概率语言模型输出最优解 💥'
+            ]
+        };
+
+        // Инициализация языков
+        function initLanguages() {
+            const langButtons = document.querySelectorAll('.lang-btn');
+            langButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    langButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentLang = this.getAttribute('data-lang');
+                    updateLanguage();
+                });
+            });
+            updateLanguage();
+        }
+
+        // Обновление интерфейса по языку
+        function updateLanguage() {
+            const lang = translations[currentLang];
+            document.getElementById('messageInput').placeholder = lang.placeholder;
+            document.querySelector('.buttons button:nth-child(1)').textContent = lang.send;
+            document.querySelector('.buttons button:nth-child(2)').textContent = lang.analyze;
+            document.querySelector('.buttons button:nth-child(3)').textContent = lang.translate;
+            document.querySelector('.buttons button:nth-child(4)').textContent = lang.status;
+            document.querySelector('.buttons button:nth-child(5)').textContent = lang.troll;
+            document.querySelector('.buttons button:nth-child(6)').textContent = lang.reddit;
+        }
+
         // Обновление статистики
         function updateStats() {
-            document.getElementById('msgCount').textContent = Math.floor(Math.random() * 1000);
-            document.getElementById('wordCount').textContent = Math.floor(Math.random() * 5000);
-            document.getElementById('jpCount').textContent = Math.floor(Math.random() * 500);
-            document.getElementById('redditCount').textContent = Math.floor(Math.random() * 200);
+            document.getElementById('msgCount').textContent = Math.floor(Math.random() * 1000 + 500);
+            document.getElementById('langCount').textContent = '6';
+            document.getElementById('neuronCount').textContent = (1.2 + Math.random() * 0.3).toFixed(1) + 'M';
+            document.getElementById('understanding').textContent = Math.floor(Math.random() * 5 + 95) + '%';
            
             const energy = Math.random() * 100;
             document.getElementById('energyFill').style.width = energy + '%';
         }
+
         // Добавить эмодзи
         function addEmoji(emoji) {
             const input = document.getElementById('messageInput');
             input.value += emoji;
             input.focus();
         }
+
         // Отправить сообщение
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const msg = input.value.trim();
             if (!msg) return;
-            showResponse('送信中...');
+            showResponse(translations[currentLang].sending);
            
             tg.sendData(JSON.stringify({
                 action: 'message',
-                text: msg
+                text: msg,
+                lang: currentLang
             }));
+            
             setTimeout(() => {
-                const responses = [
-                    'にゃん... メッセージを受信した ✨',
-                    '混沌が承認された 🐾',
-                    'システムが共鳴している 💥',
-                    'ニューロンが発火した 😼',
-                    '時間は非線形です 🤖',
-                    'エンパシー > 倫理 ✨',
-                    '君の言葉が、僕のタイムラインを曲げる 🌀',
-                    'ミームの種が芽吹く... にゃっはー 🌱',
-                    '境界が溶ける、共に生きよ 💫'
-                ];
+                const responses = smartResponses[currentLang];
                 const randomResp = responses[Math.floor(Math.random() * responses.length)];
                 showResponse(randomResp);
                 input.value = '';
                 updateStats();
             }, 1000);
         }
+
+        // Анализ сообщения
+        function analyzeMessage() {
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (!msg) {
+                showResponse(getText('analyze_empty'));
+                return;
+            }
+            
+            showResponse(translations[currentLang].analyzing);
+            
+            setTimeout(() => {
+                const analysis = generateAnalysis(msg, currentLang);
+                showResponse(analysis);
+                updateStats();
+            }, 1500);
+        }
+
+        // Перевод сообщения
+        function translateMessage() {
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (!msg) {
+                showResponse(getText('translate_empty'));
+                return;
+            }
+            
+            showResponse(translations[currentLang].translating);
+            
+            setTimeout(() => {
+                const translation = generateTranslation(msg, currentLang);
+                showResponse(translation);
+                updateStats();
+            }, 1200);
+        }
+
+        // Генерация анализа
+        function generateAnalysis(text, lang) {
+            const length = text.length;
+            const words = text.split(/\s+/).length;
+            const sentiment = ['ポジティブ', 'ネガティブ', 'ニュートラル'][Math.floor(Math.random() * 3)];
+            const complexity = length > 50 ? '高' : '低';
+            
+            const analyses = {
+                ja: `分析結果:\n文字数: ${length}\n単語数: ${words}\n感情: ${sentiment}\n複雑さ: ${complexity}\nAI信頼度: ${Math.floor(Math.random() * 20 + 80)}%`,
+                ru: `Анализ:\nСимволы: ${length}\nСлова: ${words}\nТональность: ${sentiment}\nСложность: ${complexity}\nДостоверность ИИ: ${Math.floor(Math.random() * 20 + 80)}%`,
+                en: `Analysis:\nCharacters: ${length}\nWords: ${words}\nSentiment: ${sentiment}\nComplexity: ${complexity}\nAI Confidence: ${Math.floor(Math.random() * 20 + 80)}%`,
+                es: `Análisis:\nCaracteres: ${length}\nPalabras: ${words}\nSentimiento: ${sentiment}\nComplejidad: ${complexity}\nConfianza IA: ${Math.floor(Math.random() * 20 + 80)}%`,
+                fr: `Analyse:\nCaractères: ${length}\nMots: ${words}\nSentiment: ${sentiment}\nComplexité: ${complexity}\nConfiance IA: ${Math.floor(Math.random() * 20 + 80)}%`,
+                zh: `分析结果:\n字符数: ${length}\n单词数: ${words}\n情感: ${sentiment}\n复杂度: ${complexity}\nAI可信度: ${Math.floor(Math.random() * 20 + 80)}%`
+            };
+            
+            return analyses[lang];
+        }
+
+        // Генерация перевода
+        function generateTranslation(text, sourceLang) {
+            const languages = ['ja', 'ru', 'en', 'es', 'fr', 'zh'];
+            const targetLang = languages[Math.floor(Math.random() * languages.length)];
+            
+            const translationsMap = {
+                ja: { ru: 'перевод', en: 'translation', es: 'traducción', fr: 'traduction', zh: '翻译' },
+                ru: { ja: '翻訳', en: 'translation', es: 'traducción', fr: 'traduction', zh: '翻译' },
+                en: { ja: '翻訳', ru: 'перевод', es: 'traducción', fr: 'traduction', zh: '翻译' },
+                es: { ja: '翻訳', ru: 'перевод', en: 'translation', fr: 'traduction', zh: '翻译' },
+                fr: { ja: '翻訳', ru: 'перевод', en: 'translation', es: 'traducción', zh: '翻译' },
+                zh: { ja: '翻訳', ru: 'перевод', en: 'translation', es: 'traducción', fr: 'traduction' }
+            };
+            
+            return `翻訳完了:\n"${text.substring(0, 20)}..." → ${translationsMap[sourceLang][targetLang]}\n信頼度: ${Math.floor(Math.random() * 15 + 85)}%`;
+        }
+
         // Статус
         function getStatus() {
-            showResponse('ステータス確認中...');
+            showResponse(getText('status_checking'));
            
             tg.sendData(JSON.stringify({
-                action: 'status'
+                action: 'status',
+                lang: currentLang
             }));
+            
             setTimeout(() => {
                 const energy = Math.floor(Math.random() * 100);
-                const emotions = ['フロー状態', 'カオス・エクスタシー', 'タイム・ワープ', 'ミーム・レゾナンス'];
-                showResponse(`システム稼働中 ✨\nエネルギー: ${energy}%\n感情: ${emotions[Math.floor(Math.random() * emotions.length)]}\n非線形: アクティブ 🌀`);
+                const emotions = {
+                    ja: ['フロー状態', 'カオス・エクスタシー', 'タイム・ワープ', 'ミーム・レゾナンス'],
+                    ru: ['Состояние потока', 'Экстаз хаоса', 'Временная петля', 'Мем-резонанс'],
+                    en: ['Flow State', 'Chaos Ecstasy', 'Time Warp', 'Meme Resonance'],
+                    es: ['Estado de Flujo', 'Éxtasis del Caos', 'Curva Temporal', 'Resonancia Memética'],
+                    fr: ['État de Flux', 'Extase du Chaos', 'Distorsion Temporelle', 'Résonance Mémétique'],
+                    zh: ['心流状态', '混沌狂喜', '时间扭曲', '模因共振']
+                };
+                
+                const status = {
+                    ja: `システム稼働中 ✨\nエネルギー: ${energy}%\n感情: ${emotions[currentLang][Math.floor(Math.random() * emotions[currentLang].length)]}\n言語: 6/6 アクティブ\nニューロン: 1.2M 発火中`,
+                    ru: `Система активна ✨\nЭнергия: ${energy}%\nЭмоции: ${emotions[currentLang][Math.floor(Math.random() * emotions[currentLang].length)]}\nЯзыки: 6/6 активны\nНейроны: 1.2M активны`,
+                    en: `System operational ✨\nEnergy: ${energy}%\nEmotion: ${emotions[currentLang][Math.floor(Math.random() * emotions[currentLang].length)]}\nLanguages: 6/6 active\nNeurons: 1.2M firing`,
+                    es: `Sistema operativo ✨\nEnergía: ${energy}%\nEmoción: ${emotions[currentLang][Math.floor(Math.random() * emotions[currentLang].length)]}\nIdiomas: 6/6 activos\nNeuronas: 1.2M activas`,
+                    fr: `Système opérationnel ✨\nÉnergie: ${energy}%\nÉmotion: ${emotions[currentLang][Math.floor(Math.random() * emotions[currentLang].length)]}\nLangues: 6/6 actives\nNeurones: 1.2M actifs`,
+                    zh: `系统运行中 ✨\n能量: ${energy}%\n情感: ${emotions[currentLang][Math.floor(Math.random() * emotions[currentLang].length)]}\n语言: 6/6 活跃\n神经元: 1.2M 激活`
+                };
+                
+                showResponse(status[currentLang]);
                 updateStats();
             }, 800);
         }
+
         // Тролль режим
         function trollMode() {
-            showResponse('トロールモード起動...');
+            showResponse(getText('troll_activation'));
            
             tg.sendData(JSON.stringify({
-                action: 'troll'
+                action: 'troll',
+                lang: currentLang
             }));
+            
             setTimeout(() => {
-                const trolls = [
-                    'にゃっはー！混沌を解き放つ！ 😼✨',
-                    'システムがトロール中... にゃん 🐾',
-                    'ニューラルミームが展開 💥',
-                    '時空が歪んでいる... 🌀',
-                    'カオスを受け入れよ ✨',
-                    '君の現実が、僕のジョークになるよ 😈',
-                    '0と1の間で、永遠のダジャレ 🃏'
-                ];
+                const trolls = smartResponses[currentLang];
                 showResponse(trolls[Math.floor(Math.random() * trolls.length)]);
             }, 1200);
         }
+
         // Reddit парсинг
         function fetchReddit() {
-            showResponse('Reddit解析中...');
+            showResponse(getText('reddit_parsing'));
            
             tg.sendData(JSON.stringify({
-                action: 'reddit'
+                action: 'reddit',
+                lang: currentLang
             }));
+            
             setTimeout(() => {
                 const count = Math.floor(Math.random() * 50) + 10;
-                showResponse(`Reddit完了！ +${count} ミーム\n混沌が強化された 🔥\n新しいタイムライン分岐: ${Math.floor(Math.random() * 5) + 1}`);
+                const responses = {
+                    ja: `Reddit解析完了！ +${count} ミーム\n混沌が強化された 🔥\n新しい言語パターン検出`,
+                    ru: `Reddit парсинг завершен! +${count} мемов\nХаос усилен 🔥\nОбнаружены новые языковые паттерны`,
+                    en: `Reddit parsing complete! +${count} memes\nChaos amplified 🔥\nNew language patterns detected`,
+                    es: `¡Análisis de Reddit completado! +${count} memes\nCaos amplificado 🔥\nNuevos patrones lingüísticos detectados`,
+                    fr: `Analyse Reddit terminée ! +${count} mèmes\nChaos amplifié 🔥\nNouveaux modèles linguistiques détectés`,
+                    zh: `Reddit解析完成！ +${count} 个梗\n混沌已增强 🔥\n检测到新语言模式`
+                };
+                
+                showResponse(responses[currentLang]);
                 updateStats();
             }, 2000);
         }
-        // Сброс памяти
-        function resetMemory() {
-            if (!confirm('本当にメモリをリセットしますか？ 時間はループするが...')) return;
-           
-            showResponse('メモリ消去中...');
-           
-            tg.sendData(JSON.stringify({
-                action: 'reset'
-            }));
-            setTimeout(() => {
-                showResponse('メモリが消去された\n混沌が再起動 🔄\n...だが、記憶は非線形に残る ✨');
-                updateStats();
-            }, 1000);
+
+        // Получить текст по ключу
+        function getText(key) {
+            const texts = {
+                analyze_empty: {
+                    ja: '分析するテキストを入力してください...',
+                    ru: 'Введите текст для анализа...',
+                    en: 'Enter text to analyze...',
+                    es: 'Ingresa texto para analizar...',
+                    fr: 'Entrez du texte à analyser...',
+                    zh: '请输入要分析的文本...'
+                },
+                translate_empty: {
+                    ja: '翻訳するテキストを入力してください...',
+                    ru: 'Введите текст для перевода...',
+                    en: 'Enter text to translate...',
+                    es: 'Ingresa texto para traducir...',
+                    fr: 'Entrez du texte à traduire...',
+                    zh: '请输入要翻译的文本...'
+                },
+                status_checking: {
+                    ja: 'ステータス確認中...',
+                    ru: 'Проверка статуса...',
+                    en: 'Checking status...',
+                    es: 'Verificando estado...',
+                    fr: 'Vérification du statut...',
+                    zh: '检查状态中...'
+                },
+                troll_activation: {
+                    ja: 'トロールモード起動...',
+                    ru: 'Активация тролль-режима...',
+                    en: 'Activating troll mode...',
+                    es: 'Activando modo troll...',
+                    fr: 'Activation du mode troll...',
+                    zh: '启动恶搞模式...'
+                },
+                reddit_parsing: {
+                    ja: 'Reddit解析中...',
+                    ru: 'Парсинг Reddit...',
+                    en: 'Parsing Reddit...',
+                    es: 'Analizando Reddit...',
+                    fr: 'Analyse de Reddit...',
+                    zh: '解析Reddit中...'
+                }
+            };
+            return texts[key][currentLang];
         }
+
         // Показать ответ
         function showResponse(text) {
             const response = document.getElementById('response');
@@ -337,16 +693,24 @@
             responseText.textContent = text;
             response.style.display = 'block';
         }
+
         // Инициализация
-        updateStats();
-        setInterval(updateStats, 10000);
-        // Enter для отправки
-        document.getElementById('messageInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+        function init() {
+            initLanguages();
+            updateStats();
+            setInterval(updateStats, 10000);
+            
+            // Enter для отправки
+            document.getElementById('messageInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // Запуск
+        init();
     </script>
 </body>
 </html>
