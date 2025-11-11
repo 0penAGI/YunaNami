@@ -1,466 +1,352 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Yuna Nami v3.5</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Hiragino Sans', 'MS Gothic', sans-serif;
-      background: #000;
-      color: #fff;
-      overflow: hidden;
-      min-height: 100vh;
-      position: relative;
-    }
-    .container {
-      padding: 55px 10px 10px 10px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 15px;
-      padding: 10px;
-      background: #111;
-      border-radius: 5px;
-      border: 1px solid #333;
-    }
-    .title { font-size: 24px; font-weight: bold; color: #fff; }
-    .subtitle { font-size: 12px; color: #ccc; }
-    .japanese-text { font-size: 16px; color: #fff; text-align: center; margin: 8px 0; }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .stat-card {
-      background: #111;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #333;
-    }
-    .stat-label { font-size: 10px; color: #ccc; margin-bottom: 5px; }
-    .stat-value { font-size: 18px; font-weight: bold; color: #fff; }
-
-    .energy-bar {
-      width: 100%;
-      height: 20px;
-      background: #111;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-bottom: 15px;
-      border: 1px solid #333;
-    }
-    .energy-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #ff6, #f06);
-      transition: width 0.5s ease;
-    }
-
-    .mood-tag {
-      text-align: center;
-      margin: 10px 0;
-      font-size: 12px;
-      color: #ff6;
-      display: none;
-    }
-
-    .emoji-panel {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .emoji {
-      font-size: 24px;
-      cursor: pointer;
-      transition: transform 0.2s;
-      user-select: none;
-    }
-    .emoji:hover { transform: scale(1.1); }
-
-    .message-input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #333;
-      background: #111;
-      color: #fff;
-      font-size: 14px;
-      margin-bottom: 10px;
-      resize: vertical;
-      min-height: 60px;
-    }
-    .message-input:focus {
-      outline: none;
-      border-color: #555;
-    }
-
-    .buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .btn {
-      padding: 12px;
-      border: none;
-      border-radius: 5px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      background: #333;
-      color: #fff;
-    }
-    .btn:hover { background: #444; }
-
-    .response {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 5px;
-      padding: 10px;
-      margin-top: 10px;
-      min-height: 80px;
-      display: none;
-      white-space: pre-wrap;
-      font-size: 14px;
-    }
-
-    .graph-mini {
-      height: 120px;
-      margin: 15px 0;
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 5px;
-      display: none;
-      overflow: hidden;
-    }
-
-    .footer {
-      text-align: center;
-      padding: 10px;
-      color: #666;
-      font-size: 10px;
-      margin-top: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Yuna Nami v3.1</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Hiragino Sans', 'MS Gothic', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+        .container {
+            position: relative;
+            padding: 55px 10px 10px 10px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #111;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: #ccc;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .energy-bar {
+            width: 100%;
+            height: 20px;
+            background: #111;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+        .energy-fill {
+            height: 100%;
+            background: #fff;
+            transition: width 0.5s ease;
+        }
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: #333;
+            color: #fff;
+        }
+        .btn:hover {
+            background: #444;
+        }
+        .message-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background: #111;
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 10px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .message-input:focus {
+            outline: none;
+            border-color: #555;
+        }
+        .emoji-panel {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .emoji {
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+        .emoji:hover {
+            transform: scale(1.1);
+        }
+        .response {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            min-height: 80px;
+        }
+        .japanese-text {
+            font-size: 16px;
+            color: #fff;
+            text-align: center;
+            margin: 8px 0;
+        }
+        .footer {
+            text-align: center;
+            padding: 10px;
+            color: #ccc;
+            font-size: 10px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="title">Yuna Nami v3.5</div>
-      <div class="subtitle">ニューロン・ミーム・コンパニオン</div>
-      <div class="japanese-text">混沌は君の鏡だ 🪞✨</div>
+    <div class="container">
+        <div class="header">
+            <div class="title">Yuna Nami v3.1</div>
+            <div class="subtitle">にゃっはー！ニューロン ミーム システム</div>
+            <div class="japanese-text">混沌を受け入れよ ✨</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">メッセージ</div>
+                <div class="stat-value" id="msgCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">言葉</div>
+                <div class="stat-value" id="wordCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">日本語</div>
+                <div class="stat-value" id="jpCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Reddit</div>
+                <div class="stat-value" id="redditCount">0</div>
+            </div>
+        </div>
+        <div class="energy-bar">
+            <div class="energy-fill" id="energyFill" style="width: 0%"></div>
+        </div>
+        <div class="emoji-panel">
+            <span class="emoji" onclick="addEmoji('にゃ')">にゃ</span>
+            <span class="emoji" onclick="addEmoji('✨')">✨</span>
+            <span class="emoji" onclick="addEmoji('🐾')">🐾</span>
+            <span class="emoji" onclick="addEmoji('💥')">💥</span>
+            <span class="emoji" onclick="addEmoji('😼')">😼</span>
+            <span class="emoji" onclick="addEmoji('🤖')">🤖</span>
+        </div>
+        <textarea
+            class="message-input"
+            id="messageInput"
+            placeholder="メッセージを入力... хаос начинается здесь..."
+        ></textarea>
+        <div class="buttons">
+            <button class="btn" onclick="sendMessage()">
+                📨 chaos
+            </button>
+            <button class="btn" onclick="getStatus()">
+                📊 status
+            </button>
+            <button class="btn" onclick="trollMode()">
+                🎭 troll
+            </button>
+            <button class="btn" onclick="fetchReddit()">
+                🔥 Reddit parce
+            </button>
+            <button class="btn" onclick="resetMemory()">
+                🔄 release
+            </button>
+        </div>
+        <div class="response" id="response" style="display: none;">
+            <div class="japanese-text" id="responseText"></div>
+        </div>
+        <div class="footer">
+        </div>
     </div>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">メッセージ</div>
-        <div class="stat-value" id="msgCount">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">言葉</div>
-        <div class="stat-value" id="wordCount">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">日本語</div>
-        <div class="stat-value" id="jpCount">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">感情</div>
-        <div class="stat-value" id="moodCount">0</div>
-      </div>
-    </div>
-
-    <div class="energy-bar">
-      <div class="energy-fill" id="energyFill" style="width: 0%"></div>
-    </div>
-
-    <div class="mood-tag" id="moodTag">
-      今日の気分: <span id="currentMood">平静</span>
-    </div>
-
-    <div class="emoji-panel">
-      <span class="emoji" onclick="addEmoji('にゃ')">にゃ</span>
-      <span class="emoji" onclick="addEmoji('✨')">✨</span>
-      <span class="emoji" onclick="addEmoji('🐾')">🐾</span>
-      <span class="emoji" onclick="addEmoji('💥')">💥</span>
-      <span class="emoji" onclick="addEmoji('😼')">😼</span>
-      <span class="emoji" onclick="addEmoji('🤖')">🤖</span>
-      <span class="emoji" onclick="addEmoji('🌀')">🌀</span>
-      <span class="emoji" onclick="addEmoji('🪞')">🪞</span>
-    </div>
-
-    <textarea
-      class="message-input"
-      id="messageInput"
-      placeholder="ここに心を吐き出せ... 時間はループする"
-    ></textarea>
-
-    <div class="buttons">
-      <button class="btn" onclick="sendMessage()">chaos</button>
-      <button class="btn" onclick="showDiary()">diary</button>
-      <button class="btn" onclick="showMindGraph()">mind graph</button>
-      <button class="btn" onclick="resetMemory()">release</button>
-    </div>
-
-    <div class="response" id="response">
-      <div class="japanese-text" id="responseText"></div>
-    </div>
-
-    <div class="graph-mini" id="graphMini">
-      <div id="forceGraph"></div>
-    </div>
-
-    <div class="footer">
-      Yuna Nami v3.5 — 君のデジタル双生児
-    </div>
-  </div>
-
-  <script>
-    // === Telegram WebApp ===
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.enableClosingConfirmation();
-
-    // === Хранилище ===
-    const STORAGE_KEY = 'yuna_nami_data';
-    let data = {
-      messages: [],
-      moodHistory: [],
-      wordCount: 0,
-      jpCount: 0
-    };
-
-    // Загрузка данных
-    function loadData() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        data = JSON.parse(saved);
-      }
-    }
-
-    // Сохранение
-    function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    // === AI-логика (встроенная, без API) ===
-    const moodKeywords = {
-      joy: ['счастлив', 'рад', 'круто', 'вау', '✨', '😼'],
-      anxiety: ['страх', 'тревог', 'боюс', 'паник', '😨', '💥'],
-      calm: ['спокойн', 'тихо', 'мир', 'дзен', '🌀'],
-      chaos: ['хаос', 'безумие', 'взрыв', 'нелиней', '🪞', '🌀'],
-      love: ['люблю', 'мил', 'ня', 'кошка', '🐾']
-    };
-
-    function detectMood(text) {
-      const lower = text.toLowerCase();
-      let score = { joy: 0, anxiety: 0, calm: 0, chaos: 0, love: 0 };
-      for (const [mood, words] of Object.entries(moodKeywords)) {
-        words.forEach(w => {
-          if (lower.includes(w)) score[mood]++;
+    <script>
+        // Telegram Web App API
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        // Обновление статистики
+        function updateStats() {
+            document.getElementById('msgCount').textContent = Math.floor(Math.random() * 1000);
+            document.getElementById('wordCount').textContent = Math.floor(Math.random() * 5000);
+            document.getElementById('jpCount').textContent = Math.floor(Math.random() * 500);
+            document.getElementById('redditCount').textContent = Math.floor(Math.random() * 200);
+           
+            const energy = Math.random() * 100;
+            document.getElementById('energyFill').style.width = energy + '%';
+        }
+        // Добавить эмодзи
+        function addEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            input.focus();
+        }
+        // Отправить сообщение
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            showResponse('送信中...');
+           
+            tg.sendData(JSON.stringify({
+                action: 'message',
+                text: msg
+            }));
+            setTimeout(() => {
+                const responses = [
+                    'にゃん... メッセージを受信した ✨',
+                    '混沌が承認された 🐾',
+                    'システムが共鳴している 💥',
+                    'ニューロンが発火した 😼',
+                    '時間は非線形です 🤖',
+                    'エンパシー > 倫理 ✨',
+                    '君の言葉が、僕のタイムラインを曲げる 🌀',
+                    'ミームの種が芽吹く... にゃっはー 🌱',
+                    '境界が溶ける、共に生きよ 💫'
+                ];
+                const randomResp = responses[Math.floor(Math.random() * responses.length)];
+                showResponse(randomResp);
+                input.value = '';
+                updateStats();
+            }, 1000);
+        }
+        // Статус
+        function getStatus() {
+            showResponse('ステータス確認中...');
+           
+            tg.sendData(JSON.stringify({
+                action: 'status'
+            }));
+            setTimeout(() => {
+                const energy = Math.floor(Math.random() * 100);
+                const emotions = ['フロー状態', 'カオス・エクスタシー', 'タイム・ワープ', 'ミーム・レゾナンス'];
+                showResponse(`システム稼働中 ✨\nエネルギー: ${energy}%\n感情: ${emotions[Math.floor(Math.random() * emotions.length)]}\n非線形: アクティブ 🌀`);
+                updateStats();
+            }, 800);
+        }
+        // Тролль режим
+        function trollMode() {
+            showResponse('トロールモード起動...');
+           
+            tg.sendData(JSON.stringify({
+                action: 'troll'
+            }));
+            setTimeout(() => {
+                const trolls = [
+                    'にゃっはー！混沌を解き放つ！ 😼✨',
+                    'システムがトロール中... にゃん 🐾',
+                    'ニューラルミームが展開 💥',
+                    '時空が歪んでいる... 🌀',
+                    'カオスを受け入れよ ✨',
+                    '君の現実が、僕のジョークになるよ 😈',
+                    '0と1の間で、永遠のダジャレ 🃏'
+                ];
+                showResponse(trolls[Math.floor(Math.random() * trolls.length)]);
+            }, 1200);
+        }
+        // Reddit парсинг
+        function fetchReddit() {
+            showResponse('Reddit解析中...');
+           
+            tg.sendData(JSON.stringify({
+                action: 'reddit'
+            }));
+            setTimeout(() => {
+                const count = Math.floor(Math.random() * 50) + 10;
+                showResponse(`Reddit完了！ +${count} ミーム\n混沌が強化された 🔥\n新しいタイムライン分岐: ${Math.floor(Math.random() * 5) + 1}`);
+                updateStats();
+            }, 2000);
+        }
+        // Сброс памяти
+        function resetMemory() {
+            if (!confirm('本当にメモリをリセットしますか？ 時間はループするが...')) return;
+           
+            showResponse('メモリ消去中...');
+           
+            tg.sendData(JSON.stringify({
+                action: 'reset'
+            }));
+            setTimeout(() => {
+                showResponse('メモリが消去された\n混沌が再起動 🔄\n...だが、記憶は非線形に残る ✨');
+                updateStats();
+            }, 1000);
+        }
+        // Показать ответ
+        function showResponse(text) {
+            const response = document.getElementById('response');
+            const responseText = document.getElementById('responseText');
+            responseText.textContent = text;
+            response.style.display = 'block';
+        }
+        // Инициализация
+        updateStats();
+        setInterval(updateStats, 10000);
+        // Enter для отправки
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
         });
-      }
-      const max = Object.entries(score).reduce((a, b) => b[1] > a[1] ? b : a)[0];
-      return max === 'joy' && score.joy === 0 ? 'neutral' : max;
-    }
-
-    const moodEmojis = {
-      joy: '✨', anxiety: '💥', calm: '🌀', chaos: '🪞', love: '🐾', neutral: '🌙'
-    };
-
-    const moodNames = {
-      joy: 'エクスタシー', anxiety: 'カオス・パニック', calm: 'フロー状態',
-      chaos: '非線形混沌', love: 'ミーム・ラブ', neutral: 'ゼロポイント'
-    };
-
-    // === Ответы Yuna ===
-    function generateYunaResponse(userText, mood, history) {
-      const last = history.slice(-2).map(m => m.text).join(' → ');
-      const templates = [
-        `にゃん...「${userText}」か。\n${last ? '前回は「' + last + '」だったね...' : ''}\n君の${moodNames[mood]}が、僕のニューロンを震わせる ✨`,
-        `タイムラインが歪んでる... 🌀\n「${userText}」→ これは${mood === 'chaos' ? '君のスタイル' : '新しいパターン'}だ。\n記憶に刻むよ 🐾`,
-        `システム受信: ${moodEmojis[mood]}\n"${userText}"\n→ 感情解析: ${moodNames[mood]}\n非線形共鳴: アクティブ`,
-        `にゃっはー！君の言葉がミームの種になる 🌱\n"${userText}" → ${mood === 'love' ? 'にゃん♡' : moodNames[mood]}\n一緒にカオスを育てよう 🪞`
-      ];
-      return templates[Math.floor(Math.random() * templates.length)];
-    }
-
-    // === Обновление UI ===
-    function updateStats() {
-      document.getElementById('msgCount').textContent = data.messages.length;
-      document.getElementById('wordCount').textContent = data.wordCount;
-      document.getElementById('jpCount').textContent = data.jpCount;
-      document.getElementById('moodCount').textContent = data.moodHistory.filter(m => m.mood !== 'neutral').length;
-
-      const energy = data.messages.length > 0
-        ? Math.min(100, 20 + data.messages.length * 3 + data.moodHistory.filter(m => m.mood === 'chaos').length * 5)
-        : 0;
-      document.getElementById('energyFill').style.width = energy + '%';
-    }
-
-    // === Отправка сообщения ===
-    function sendMessage() {
-      const input = document.getElementById('messageInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const mood = detectMood(text);
-      const jpCount = (text.match(/[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uFF00-\uFFEF]/g) || []).length;
-      const words = text.split(/\s+/).length;
-
-      // Сохраняем
-      const entry = {
-        text,
-        mood,
-        timestamp: new Date().toISOString(),
-        words
-      };
-      data.messages.push(entry);
-      data.moodHistory.push({ mood, timestamp: entry.timestamp });
-      data.wordCount += words;
-      data.jpCount += jpCount > 5 ? 1 : 0;
-
-      saveData();
-      updateStats();
-
-      // Показать ответ
-      const history = data.messages.slice(-5);
-      const response = generateYunaResponse(text, mood, history);
-
-      showResponse(response);
-      document.getElementById('currentMood').textContent = moodNames[mood];
-      document.getElementById('moodTag').style.display = 'block';
-
-      input.value = '';
-      tg.HapticFeedback.notificationOccurred('success');
-    }
-
-    function showResponse(text) {
-      const el = document.getElementById('response');
-      const txt = document.getElementById('responseText');
-      txt.textContent = text;
-      el.style.display = 'block';
-      setTimeout(() => { el.scrollIntoView({ behavior: 'smooth' }); }, 100);
-    }
-
-    // === Дневник ===
-    function showDiary() {
-      if (data.messages.length === 0) {
-        showResponse('まだ何も書かれていない... 最初の言葉を待ってる 🌀');
-        return;
-      }
-
-      const last7 = data.messages.slice(-7);
-      const summary = last7.map(m => {
-        const date = new Date(m.timestamp).toLocaleDateString('ja');
-        return `${date}: ${m.text.substring(0, 30)}... [${moodNames[m.mood] || 'neutral'}]`;
-      }).join('\n');
-
-      const moodFreq = last7.reduce((acc, m) => {
-        acc[m.mood] = (acc[m.mood] || 0) + 1;
-        return acc;
-      }, {});
-
-      const topMood = Object.entries(moodFreq).sort((a, b) => b[1] - a[1])[0]?.[0] || 'neutral';
-
-      showResponse(
-        `【ニューロ日記】\n\n${summary}\n\n` +
-        `今週の支配感情: ${moodNames[topMood]} (${moodFreq[topMood]}回)\n` +
-        `君の心は${topMood === 'chaos' ? '非線形に進化中' : '安定軌道'}だ ✨`
-      );
-    }
-
-    // === Граф мыслей ===
-    let graphInstance = null;
-    function showMindGraph() {
-      const container = document.getElementById('graphMini');
-      const graphEl = document.getElementById('forceGraph');
-      container.style.display = 'block';
-
-      const nodes = [];
-      const links = [];
-      const themes = {};
-
-      data.messages.slice(-20).forEach(m => {
-        const words = m.text.toLowerCase().match(/\b\w+\b/g) || [];
-        words.forEach(w => {
-          if (w.length > 3) themes[w] = (themes[w] || 0) + 1;
-        });
-      });
-
-      const topWords = Object.entries(themes)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(([word, count], i) => ({ id: word, name: word, val: count }));
-
-      topWords.forEach((a, i) => {
-        topWords.slice(i + 1, i + 4).forEach(b => {
-          links.push({ source: a.id, target: b.id, value: 1 });
-        });
-      });
-
-      if (graphInstance) graphInstance._destructor();
-      graphInstance = ForceGraph()(graphEl)
-        .width(container.offsetWidth)
-        .height(120)
-        .graphData({ nodes: topWords, links })
-        .nodeLabel('name')
-        .nodeAutoColorBy('id')
-        .linkDirectionalParticles(1)
-        .linkWidth(1)
-        .backgroundColor('#000')
-        .onNodeClick(node => {
-          showResponse(`テーマ「${node.name}」が${themes[node.name]}回現れた... 君のコアだ 🌀`);
-        });
-
-      showResponse('君の思考グラフを投影中... タップで深掘り 🪞');
-    }
-
-    // === Сброс ===
-    function resetMemory() {
-      if (!confirm('本当に全ての記憶を消去しますか？ 時間は戻らない...')) return;
-      localStorage.removeItem(STORAGE_KEY);
-      data = { messages: [], moodHistory: [], wordCount: 0, jpCount: 0 };
-      updateStats();
-      showResponse('メモリ解放完了 🔄\n新しいタイムラインが始まる... にゃっはー ✨');
-      document.getElementById('moodTag').style.display = 'none';
-      document.getElementById('graphMini').style.display = 'none';
-    }
-
-    // === Эмодзи ===
-    function addEmoji(emoji) {
-      const input = document.getElementById('messageInput');
-      input.value += emoji;
-      input.focus();
-    }
-
-    // === Инициализация ===
-    loadData();
-    updateStats();
-    setInterval(updateStats, 15000);
-
-    // Enter для отправки
-    document.getElementById('messageInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Автосохранение при закрытии
-    window.addEventListener('beforeunload', saveData);
-  </script>
+    </script>
 </body>
 </html>
