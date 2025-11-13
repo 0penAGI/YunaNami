@@ -1,4 +1,4 @@
-# 🐱 Yuma Nami - Neural Chaos AI Chatbot
+# 🐱 Yuna Nami - Neural Chaos AI Chatbot
 
 <div align="center">
 
@@ -238,10 +238,10 @@ Features → [lang_sync, emotion_sync, semantic_sync,
 ### File Structure
 ```
 YunaNami/
-├── yuma.py              # Main bot code
-├── yuma_micro.pt        # PyTorch model & memory
-├── yuma_ltm.sqlite      # SQLite conversation DB
-├── yuma_data.json       # JSON backup
+├── yuna.py              # Main bot code
+├── yuna_micro.pt        # PyTorch model & memory
+├── yuna_ltm.sqlite      # SQLite conversation DB
+├── yuna_data.json       # JSON backup
 ├── photo_cache/         # User photo storage
 ├── reddit_cache/        # Reddit meme cache
 └── yuma.log            # Application logs
@@ -280,7 +280,7 @@ CREATE TABLE messages (
 
 ### Environment Variables
 ```bash
-export YUMA_NODE_ID="unique-node-identifier"  # For multi-node setups
+export YUNA_NODE_ID="unique-node-identifier"  # For multi-node setups
 ```
 
 ---
@@ -323,7 +323,7 @@ pip install pytest black flake8
 pytest tests/
 
 # Format code
-black yuma.py
+black yuna.py
 ```
 
 ### Contribution Areas
@@ -389,7 +389,7 @@ copies of the Software...
 - **GitHub Issues**: [Report bugs or request features](https://github.com/0penAGI/YunaNami/issues)
 - **Discussions**: [Join the conversation](https://github.com/0penAGI/YunaNami/discussions)
 - **Twitter**: [@0penAGI](https://twitter.com/0penAGI)
-- **Email**: support@0penagi.org
+
 
 ---
 
