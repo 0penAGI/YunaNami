@@ -261,7 +261,7 @@ init_ltm_db()
 # YUNA_NAMI_V3.2_FULL_ASYNC.py
 # Нейронные мемы | Японский хаос | Самообучение из чата | Полностью асинхронный Reddit (AsyncPRAW) | Только японский голос
 # pip install python-telegram-bot pillow requests asyncpraw gtts pydub libretranslatepy aiohttp langdetect openai-whisper
-# Токен: 7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI
+
 
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
