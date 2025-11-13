@@ -1,0 +1,50 @@
+# Yuna Nami v3.2 - Requirements
+# Python >= 3.8
+
+# Core Bot Framework
+python-telegram-bot>=20.0
+nest-asyncio>=1.5.6
+
+# Async & Networking
+aiohttp>=3.8.0
+asyncio>=3.4.3
+asyncpraw>=7.7.0
+websockets>=11.0
+
+# Deep Learning & AI
+torch>=1.9.0
+numpy>=1.21.0
+scikit-learn>=1.0.0
+
+# Image Processing
+Pillow>=9.0.0
+matplotlib>=3.5.0
+
+# Audio Processing
+gtts>=2.3.0
+pydub>=0.25.1
+openai-whisper>=20230314
+
+# NLP & Translation
+langdetect>=1.0.9
+deep-translator>=1.11.0
+libretranslatepy>=2.1.1
+
+# Web Scraping & Parsing
+beautifulsoup4>=4.11.0
+feedparser>=6.0.10
+lxml>=4.9.0
+
+# Data & Database
+requests>=2.28.0
+
+# Optional: Stable Diffusion (requires GPU)
+# diffusers>=0.21.0
+# transformers>=4.30.0
+# accelerate>=0.20.0
+
+# Development Tools (optional)
+# pytest>=7.3.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0
