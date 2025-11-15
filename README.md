@@ -1,5 +1,5 @@
 # 🐱 Yuna Nami - Neural Chaos AI Chatbot
-
+**TRY YUNA NAMI IN [TELEGRAM](http://t.me/@YunaNami_bot)**
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-3.2-blue.svg)
