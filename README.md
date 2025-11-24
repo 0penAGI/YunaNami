@@ -705,7 +705,7 @@ in the Software without restriction...
 
 **Made with ❤️ and ☕ by [0penAGI](https://github.com/0penAGI)**
 
-*"In chaos, we find resonance. In resonance, we find truth." — Yuna Nami*
+
 
 **にゃん！ ✨🐾**
 
