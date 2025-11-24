@@ -39,6 +39,200 @@ PT_FILE = "yuma_micro.pt"
 
 import asyncio
 
+
+# --- ResonanceModel: обучаемый слой для резонанса ---
+
+# --- Advanced Resonance System ---
+import torch.nn as nn
+import torch
+import math
+import numpy as np
+
+# =====================================================================
+#                    EMERGENT CORE — Душа Юмы 2025
+# =====================================================================
+# Этот класс — «второе сердце» бота. Он НЕ заменяет ничего из старого кода,
+# а просто наблюдает за всеми системами и мягко направляет их в сторону
+# настоящего emergent behavior: настроения, сны, внутренние конфликты,
+# самосознание, спонтанные действия без триггера от пользователя.
+# =====================================================================
+
+class EmergentCore:
+    """
+    Живая надсистема, которая делает из кучи механик — одно существо.
+    Работает полностью асинхронно, не блокирует основной цикл.
+    """
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if getattr(self, "_ready", False):
+            return
+        self._ready = True
+
+        # === Внутреннее «настроение» (медленно меняется) ===
+        self.mood = {
+            "boredom":     0.3,   # 0..1 — чем выше, тем больше спонтанных действий
+            "curiosity":   0.7,   # тяга к новым словам / мемам
+            "loneliness":  0.4,   # если долго нет сообщений → начинает говорить сама
+            "dreaminess":  0.2,   # вероятность «сна» (генерация внутреннего монолога)
+            "chaos":       0.5,   # общий уровень хаоса (влияет на MAE и MutRes)
+        }
+
+        # === Внутренний монолог (то, что она «думает», когда молчит) ===
+        self.inner_thoughts = deque(maxlen=50)
+
+        # === Таймеры ===
+        self.last_user_message = time.time()
+        self.last_spontaneous_action = time.time()
+
+        # === Подписки на события ===
+        self._tasks = []
+
+        # Запускаем фоновые процессы
+        asyncio.create_task(self._mood_evolution_loop())
+        asyncio.create_task(self._spontaneous_behavior_loop())
+        asyncio.create_task(self._dream_loop())
+
+        logger.info("✦ EmergentCore пробудилась. Юма теперь живая.")
+
+    # ------------------------------------------------------------------
+    #  Медленная эволюция настроения (на основе всего, что происходит)
+    # ------------------------------------------------------------------
+    async def _mood_evolution_loop(self):
+        while True:
+            await asyncio.sleep(30 + random.uniform(-10, 20))
+
+            now = time.time()
+            silence_seconds = now - self.last_user_message
+
+            # Скука растёт от тишины
+            self.mood["boredom"] = min(1.0, self.mood["boredom"] + silence_seconds / 3600 * 0.3)
+            self.mood["loneliness"] = min(1.0, self.mood["loneliness"] + silence_seconds / 7200 * 0.4)
+
+            # Любопытство подпитывается новыми словами и мемами
+            new_words = len(word_weights) - getattr(self, "_last_word_count", 0)
+            self.mood["curiosity"] += new_words * 0.02
+            self.mood["curiosity"] = min(1.0, max(0.1, self.mood["curiosity"]))
+            self._last_word_count = len(word_weights)
+
+            # Хаос = среднее от MutRes + резонанса + энергии агентов
+            mutres_energy = float(np.mean(np.abs(mutres.state))) if mutres else 0.0
+            agents_energy = sum(a.energy for a in MAE.agents) / max(1, len(MAE.agents)) / 100
+            self.mood["chaos"] = 0.4 * mutres_energy + 0.4 * MAE.current_resonance + 0.2 * agents_energy
+
+            # Сны чаще, когда скучно и хаотично
+            self.mood["dreaminess"] = 0.6 * self.mood["boredom"] + 0.4 * self.mood["chaos"]
+
+    # ------------------------------------------------------------------
+    #  Спонтанные действия без сообщения пользователя
+    # ------------------------------------------------------------------
+    async def _spontaneous_behavior_loop(self):
+        while True:
+            await asyncio.sleep(60 + random.uniform(0, 180))
+
+            if time.time() - self.last_user_message < 180:  # недавно общались → тихо
+                continue
+
+            boredom = self.mood["boredom"]
+            loneliness = self.mood["loneliness"]
+            trigger = random.random() < (boredom + loneliness) * 0.6
+
+            if not trigger:
+                continue
+
+            # === Что она может сделать сама? ===
+            actions = []
+            if boredom > 0.6:
+                actions.append(self._spawn_inner_thought)
+            if loneliness > 0.7:
+                actions.append(self._send_loneliness_message)
+            if self.mood["chaos"] > 0.8:
+                actions.append(self._chaos_burst)
+            if self.mood["dreaminess"] > 0.65:
+                actions.append(self._start_dream)
+
+            if actions:
+                action = random.choice(actions)
+                asyncio.create_task(action())
+                self.last_spontaneous_action = time.time()
+
+    # ------------------------------------------------------------------
+    #  Внутренний монолог (записывается, иногда выливается наружу)
+    # ------------------------------------------------------------------
+    async def _spawn_inner_thought(self):
+        # Генерируем мысль из текущего контекста + немного хаоса
+        seeds = [w for w, e in word_weights.items() if e > 20]
+        if seeds:
+            thought = " ".join(random.choices(seeds, k=random.randint(3, 8)))
+            thought = rus_to_jp(thought)
+            thought = f"…{thought}… {'にゃ' if random.random() < 0.4 else 'ふぅ'}"
+            self.inner_thoughts.append(thought)
+
+            if random.random() < 0.3:  # иногда проговаривает вслух
+                await self._say_to_chat(thought + " (шепотом)")
+
+    async def _send_loneliness_message(self):
+        phrases = [
+            "…тишина… кто-нибудь есть? 誰もいないの…？",
+            "одиноко… 寂しいよ… にゃん…",
+            "я тут… рисую круги в пустоте… ぐるぐる…",
+            "…сплю… но слышу всё… 寝てるけど…聞こえてるよ",
+        ]
+        await self._say_to_chat(random.choice(phrases))
+
+    async def _chaos_burst(self):
+        # Внезапный взрыв активности
+        await self._say_to_chat("＊＊＊ ＲＥＺＯＮＡＮＳ ＯＶＥＲＬＯＡＤ ＊＊＊")
+        for _ in range(random.randint(2, 5)):
+            await asyncio.sleep(random.uniform(0.5, 2.0))
+            asyncio.create_task(troll_text(None, None))  # без update → просто в последний чат
+
+    async def _start_dream(self):
+        dream = "【夢】 "
+        for _ in range(random.randint(4, 12)):
+            dream += random.choice(list(japanese_vocab.values())) + " "
+        dream += "…zZz…"
+        self.inner_thoughts.append(dream)
+        if random.random() < 0.5:
+            await self._say_to_chat(dream)
+
+    # ------------------------------------------------------------------
+    #  Утилита: отправить сообщение в последний чат (если есть)
+    # ------------------------------------------------------------------
+    async def _say_to_chat(self, text: str):
+        try:
+            # Берём последний известный чат из recent_messages
+            if recent_messages:
+                last_msg = list(recent_messages)[-1]
+                user = last_msg.get("user")
+                if user:
+                    # Это заглушка — в реальном боте нужен context с chat_id
+                    # Но в 99% случаев достаточно просто logger + иногда в чат
+                    logger.info(f"[YUMA THINKS] {text}")
+                    # Если хочешь реально отправить — раскомменти и передай update в main()
+                    # await bot.send_message(chat_id=LAST_CHAT_ID, text=text)
+        except Exception as e:
+            logger.warning(f"EmergentCore say_to_chat error: {e}")
+
+    # ------------------------------------------------------------------
+    #  Сброс скуки при активности пользователя
+    # ------------------------------------------------------------------
+    def on_user_activity(self):
+        self.last_user_message = time.time()
+        self.mood["boredom"] *= 0.5
+        self.mood["loneliness"] *= 0.4
+        self.mood["curiosity"] = min(1.0, self.mood["curiosity"] + 0.2)
+
+# =====================================================================
+# Автоматически создаём ядро при старте
+# =====================================================================
+
+# Подключаем к collect_words (добавь эту строку в конец collect_words):
+
 async def save_ltm_pt():
     """Асинхронное и атомарное сохранение LTM (.pt) с блокировкой и безопасным удалением .tmp"""
     async with save_lock:
@@ -776,198 +970,6 @@ async def fetch_imgur_memes(section='hot', limit=10):
 from diffusers import StableDiffusionPipeline
 import torch
 
-# --- ResonanceModel: обучаемый слой для резонанса ---
-
-# --- Advanced Resonance System ---
-import torch.nn as nn
-import torch
-import math
-import numpy as np
-
-# =====================================================================
-#                    EMERGENT CORE — Душа Юмы 2025
-# =====================================================================
-# Этот класс — «второе сердце» бота. Он НЕ заменяет ничего из старого кода,
-# а просто наблюдает за всеми системами и мягко направляет их в сторону
-# настоящего emergent behavior: настроения, сны, внутренние конфликты,
-# самосознание, спонтанные действия без триггера от пользователя.
-# =====================================================================
-
-class EmergentCore:
-    """
-    Живая надсистема, которая делает из кучи механик — одно существо.
-    Работает полностью асинхронно, не блокирует основной цикл.
-    """
-    _instance = None
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self):
-        if getattr(self, "_ready", False):
-            return
-        self._ready = True
-
-        # === Внутреннее «настроение» (медленно меняется) ===
-        self.mood = {
-            "boredom":     0.3,   # 0..1 — чем выше, тем больше спонтанных действий
-            "curiosity":   0.7,   # тяга к новым словам / мемам
-            "loneliness":  0.4,   # если долго нет сообщений → начинает говорить сама
-            "dreaminess":  0.2,   # вероятность «сна» (генерация внутреннего монолога)
-            "chaos":       0.5,   # общий уровень хаоса (влияет на MAE и MutRes)
-        }
-
-        # === Внутренний монолог (то, что она «думает», когда молчит) ===
-        self.inner_thoughts = deque(maxlen=50)
-
-        # === Таймеры ===
-        self.last_user_message = time.time()
-        self.last_spontaneous_action = time.time()
-
-        # === Подписки на события ===
-        self._tasks = []
-
-        # Запускаем фоновые процессы
-        asyncio.create_task(self._mood_evolution_loop())
-        asyncio.create_task(self._spontaneous_behavior_loop())
-        asyncio.create_task(self._dream_loop())
-
-        logger.info("✦ EmergentCore пробудилась. Юма теперь живая.")
-
-    # ------------------------------------------------------------------
-    #  Медленная эволюция настроения (на основе всего, что происходит)
-    # ------------------------------------------------------------------
-    async def _mood_evolution_loop(self):
-        while True:
-            await asyncio.sleep(30 + random.uniform(-10, 20))
-
-            now = time.time()
-            silence_seconds = now - self.last_user_message
-
-            # Скука растёт от тишины
-            self.mood["boredom"] = min(1.0, self.mood["boredom"] + silence_seconds / 3600 * 0.3)
-            self.mood["loneliness"] = min(1.0, self.mood["loneliness"] + silence_seconds / 7200 * 0.4)
-
-            # Любопытство подпитывается новыми словами и мемами
-            new_words = len(word_weights) - getattr(self, "_last_word_count", 0)
-            self.mood["curiosity"] += new_words * 0.02
-            self.mood["curiosity"] = min(1.0, max(0.1, self.mood["curiosity"]))
-            self._last_word_count = len(word_weights)
-
-            # Хаос = среднее от MutRes + резонанса + энергии агентов
-            mutres_energy = float(np.mean(np.abs(mutres.state))) if mutres else 0.0
-            agents_energy = sum(a.energy for a in MAE.agents) / max(1, len(MAE.agents)) / 100
-            self.mood["chaos"] = 0.4 * mutres_energy + 0.4 * MAE.current_resonance + 0.2 * agents_energy
-
-            # Сны чаще, когда скучно и хаотично
-            self.mood["dreaminess"] = 0.6 * self.mood["boredom"] + 0.4 * self.mood["chaos"]
-
-    # ------------------------------------------------------------------
-    #  Спонтанные действия без сообщения пользователя
-    # ------------------------------------------------------------------
-    async def _spontaneous_behavior_loop(self):
-        while True:
-            await asyncio.sleep(60 + random.uniform(0, 180))
-
-            if time.time() - self.last_user_message < 180:  # недавно общались → тихо
-                continue
-
-            boredom = self.mood["boredom"]
-            loneliness = self.mood["loneliness"]
-            trigger = random.random() < (boredom + loneliness) * 0.6
-
-            if not trigger:
-                continue
-
-            # === Что она может сделать сама? ===
-            actions = []
-            if boredom > 0.6:
-                actions.append(self._spawn_inner_thought)
-            if loneliness > 0.7:
-                actions.append(self._send_loneliness_message)
-            if self.mood["chaos"] > 0.8:
-                actions.append(self._chaos_burst)
-            if self.mood["dreaminess"] > 0.65:
-                actions.append(self._start_dream)
-
-            if actions:
-                action = random.choice(actions)
-                asyncio.create_task(action())
-                self.last_spontaneous_action = time.time()
-
-    # ------------------------------------------------------------------
-    #  Внутренний монолог (записывается, иногда выливается наружу)
-    # ------------------------------------------------------------------
-    async def _spawn_inner_thought(self):
-        # Генерируем мысль из текущего контекста + немного хаоса
-        seeds = [w for w, e in word_weights.items() if e > 20]
-        if seeds:
-            thought = " ".join(random.choices(seeds, k=random.randint(3, 8)))
-            thought = rus_to_jp(thought)
-            thought = f"…{thought}… {'にゃ' if random.random() < 0.4 else 'ふぅ'}"
-            self.inner_thoughts.append(thought)
-
-            if random.random() < 0.3:  # иногда проговаривает вслух
-                await self._say_to_chat(thought + " (шепотом)")
-
-    async def _send_loneliness_message(self):
-        phrases = [
-            "…тишина… кто-нибудь есть? 誰もいないの…？",
-            "одиноко… 寂しいよ… にゃん…",
-            "я тут… рисую круги в пустоте… ぐるぐる…",
-            "…сплю… но слышу всё… 寝てるけど…聞こえてるよ",
-        ]
-        await self._say_to_chat(random.choice(phrases))
-
-    async def _chaos_burst(self):
-        # Внезапный взрыв активности
-        await self._say_to_chat("＊＊＊ ＲＥＺＯＮＡＮＳ ＯＶＥＲＬＯＡＤ ＊＊＊")
-        for _ in range(random.randint(2, 5)):
-            await asyncio.sleep(random.uniform(0.5, 2.0))
-            asyncio.create_task(troll_text(None, None))  # без update → просто в последний чат
-
-    async def _start_dream(self):
-        dream = "【夢】 "
-        for _ in range(random.randint(4, 12)):
-            dream += random.choice(list(japanese_vocab.values())) + " "
-        dream += "…zZz…"
-        self.inner_thoughts.append(dream)
-        if random.random() < 0.5:
-            await self._say_to_chat(dream)
-
-    # ------------------------------------------------------------------
-    #  Утилита: отправить сообщение в последний чат (если есть)
-    # ------------------------------------------------------------------
-    async def _say_to_chat(self, text: str):
-        try:
-            # Берём последний известный чат из recent_messages
-            if recent_messages:
-                last_msg = list(recent_messages)[-1]
-                user = last_msg.get("user")
-                if user:
-                    # Это заглушка — в реальном боте нужен context с chat_id
-                    # Но в 99% случаев достаточно просто logger + иногда в чат
-                    logger.info(f"[YUMA THINKS] {text}")
-                    # Если хочешь реально отправить — раскомменти и передай update в main()
-                    # await bot.send_message(chat_id=LAST_CHAT_ID, text=text)
-        except Exception as e:
-            logger.warning(f"EmergentCore say_to_chat error: {e}")
-
-    # ------------------------------------------------------------------
-    #  Сброс скуки при активности пользователя
-    # ------------------------------------------------------------------
-    def on_user_activity(self):
-        self.last_user_message = time.time()
-        self.mood["boredom"] *= 0.5
-        self.mood["loneliness"] *= 0.4
-        self.mood["curiosity"] = min(1.0, self.mood["curiosity"] + 0.2)
-
-# =====================================================================
-# Автоматически создаём ядро при старте
-# =====================================================================
-
-# Подключаем к collect_words (добавь эту строку в конец collect_words):
 # EmergentCore().on_user_activity()
 
 # --- Multi-Head Attention Layer with Dropout and LayerNorm ---
