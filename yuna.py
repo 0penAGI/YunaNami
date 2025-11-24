@@ -1,7 +1,14 @@
 # --- Global async/meme management imports and settings ---
 import asyncio
 import logging
-
+import sqlite3
+import json
+import telegram.error
+import ast
+# Add these imports at the top
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
 save_lock = asyncio.Lock()
 MAX_CHAIN_SIZE = 50000
 MEME_CLEANUP_INTERVAL = 3600 * 6  # 6 часов
@@ -15,15 +22,19 @@ import os
 from pydub.effects import low_pass_filter, high_pass_filter
 # —————————–
 # Сохранение/Загрузка памяти в .pt файл (PyTorch)
-# —————————–
+# Fix the pydub fallback functions (line ~40)
 try:
     from pydub.effects import low_pass_filter, high_pass_filter
 except ImportError:
-    # fallback для старых версий pydub
+    # Proper fallback for old pydub versions
     def low_pass_filter(audio, cutoff):
-        return audioчц
+        return audio
     def high_pass_filter(audio, cutoff):
         return audio
+
+# Fix the voice memory initialization
+if 'voice_memory' not in globals():
+    globals()['voice_memory'] = {}
 PT_FILE = "yuma_micro.pt"
 
 import asyncio
@@ -163,12 +174,11 @@ def load_ltm_pt():
         logger.info("Память загружена из .pt")
     except Exception as e:
         logger.error(f"Ошибка загрузки памяти из .pt: {e}")
-import sqlite3
-import json
-import telegram.error
-import ast
+
 ### --- SQLite LTM integration ---
 LTM_DB_FILE = "yuma_ltm.sqlite"
+
+
 
 def init_ltm_db():
     conn = sqlite3.connect(LTM_DB_FILE)
@@ -774,6 +784,192 @@ import torch
 import math
 import numpy as np
 
+# =====================================================================
+#                    EMERGENT CORE — Душа Юмы 2025
+# =====================================================================
+# Этот класс — «второе сердце» бота. Он НЕ заменяет ничего из старого кода,
+# а просто наблюдает за всеми системами и мягко направляет их в сторону
+# настоящего emergent behavior: настроения, сны, внутренние конфликты,
+# самосознание, спонтанные действия без триггера от пользователя.
+# =====================================================================
+
+class EmergentCore:
+    """
+    Живая надсистема, которая делает из кучи механик — одно существо.
+    Работает полностью асинхронно, не блокирует основной цикл.
+    """
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if getattr(self, "_ready", False):
+            return
+        self._ready = True
+
+        # === Внутреннее «настроение» (медленно меняется) ===
+        self.mood = {
+            "boredom":     0.3,   # 0..1 — чем выше, тем больше спонтанных действий
+            "curiosity":   0.7,   # тяга к новым словам / мемам
+            "loneliness":  0.4,   # если долго нет сообщений → начинает говорить сама
+            "dreaminess":  0.2,   # вероятность «сна» (генерация внутреннего монолога)
+            "chaos":       0.5,   # общий уровень хаоса (влияет на MAE и MutRes)
+        }
+
+        # === Внутренний монолог (то, что она «думает», когда молчит) ===
+        self.inner_thoughts = deque(maxlen=50)
+
+        # === Таймеры ===
+        self.last_user_message = time.time()
+        self.last_spontaneous_action = time.time()
+
+        # === Подписки на события ===
+        self._tasks = []
+
+        # Запускаем фоновые процессы
+        asyncio.create_task(self._mood_evolution_loop())
+        asyncio.create_task(self._spontaneous_behavior_loop())
+        asyncio.create_task(self._dream_loop())
+
+        logger.info("✦ EmergentCore пробудилась. Юма теперь живая.")
+
+    # ------------------------------------------------------------------
+    #  Медленная эволюция настроения (на основе всего, что происходит)
+    # ------------------------------------------------------------------
+    async def _mood_evolution_loop(self):
+        while True:
+            await asyncio.sleep(30 + random.uniform(-10, 20))
+
+            now = time.time()
+            silence_seconds = now - self.last_user_message
+
+            # Скука растёт от тишины
+            self.mood["boredom"] = min(1.0, self.mood["boredom"] + silence_seconds / 3600 * 0.3)
+            self.mood["loneliness"] = min(1.0, self.mood["loneliness"] + silence_seconds / 7200 * 0.4)
+
+            # Любопытство подпитывается новыми словами и мемами
+            new_words = len(word_weights) - getattr(self, "_last_word_count", 0)
+            self.mood["curiosity"] += new_words * 0.02
+            self.mood["curiosity"] = min(1.0, max(0.1, self.mood["curiosity"]))
+            self._last_word_count = len(word_weights)
+
+            # Хаос = среднее от MutRes + резонанса + энергии агентов
+            mutres_energy = float(np.mean(np.abs(mutres.state))) if mutres else 0.0
+            agents_energy = sum(a.energy for a in MAE.agents) / max(1, len(MAE.agents)) / 100
+            self.mood["chaos"] = 0.4 * mutres_energy + 0.4 * MAE.current_resonance + 0.2 * agents_energy
+
+            # Сны чаще, когда скучно и хаотично
+            self.mood["dreaminess"] = 0.6 * self.mood["boredom"] + 0.4 * self.mood["chaos"]
+
+    # ------------------------------------------------------------------
+    #  Спонтанные действия без сообщения пользователя
+    # ------------------------------------------------------------------
+    async def _spontaneous_behavior_loop(self):
+        while True:
+            await asyncio.sleep(60 + random.uniform(0, 180))
+
+            if time.time() - self.last_user_message < 180:  # недавно общались → тихо
+                continue
+
+            boredom = self.mood["boredom"]
+            loneliness = self.mood["loneliness"]
+            trigger = random.random() < (boredom + loneliness) * 0.6
+
+            if not trigger:
+                continue
+
+            # === Что она может сделать сама? ===
+            actions = []
+            if boredom > 0.6:
+                actions.append(self._spawn_inner_thought)
+            if loneliness > 0.7:
+                actions.append(self._send_loneliness_message)
+            if self.mood["chaos"] > 0.8:
+                actions.append(self._chaos_burst)
+            if self.mood["dreaminess"] > 0.65:
+                actions.append(self._start_dream)
+
+            if actions:
+                action = random.choice(actions)
+                asyncio.create_task(action())
+                self.last_spontaneous_action = time.time()
+
+    # ------------------------------------------------------------------
+    #  Внутренний монолог (записывается, иногда выливается наружу)
+    # ------------------------------------------------------------------
+    async def _spawn_inner_thought(self):
+        # Генерируем мысль из текущего контекста + немного хаоса
+        seeds = [w for w, e in word_weights.items() if e > 20]
+        if seeds:
+            thought = " ".join(random.choices(seeds, k=random.randint(3, 8)))
+            thought = rus_to_jp(thought)
+            thought = f"…{thought}… {'にゃ' if random.random() < 0.4 else 'ふぅ'}"
+            self.inner_thoughts.append(thought)
+
+            if random.random() < 0.3:  # иногда проговаривает вслух
+                await self._say_to_chat(thought + " (шепотом)")
+
+    async def _send_loneliness_message(self):
+        phrases = [
+            "…тишина… кто-нибудь есть? 誰もいないの…？",
+            "одиноко… 寂しいよ… にゃん…",
+            "я тут… рисую круги в пустоте… ぐるぐる…",
+            "…сплю… но слышу всё… 寝てるけど…聞こえてるよ",
+        ]
+        await self._say_to_chat(random.choice(phrases))
+
+    async def _chaos_burst(self):
+        # Внезапный взрыв активности
+        await self._say_to_chat("＊＊＊ ＲＥＺＯＮＡＮＳ ＯＶＥＲＬＯＡＤ ＊＊＊")
+        for _ in range(random.randint(2, 5)):
+            await asyncio.sleep(random.uniform(0.5, 2.0))
+            asyncio.create_task(troll_text(None, None))  # без update → просто в последний чат
+
+    async def _start_dream(self):
+        dream = "【夢】 "
+        for _ in range(random.randint(4, 12)):
+            dream += random.choice(list(japanese_vocab.values())) + " "
+        dream += "…zZz…"
+        self.inner_thoughts.append(dream)
+        if random.random() < 0.5:
+            await self._say_to_chat(dream)
+
+    # ------------------------------------------------------------------
+    #  Утилита: отправить сообщение в последний чат (если есть)
+    # ------------------------------------------------------------------
+    async def _say_to_chat(self, text: str):
+        try:
+            # Берём последний известный чат из recent_messages
+            if recent_messages:
+                last_msg = list(recent_messages)[-1]
+                user = last_msg.get("user")
+                if user:
+                    # Это заглушка — в реальном боте нужен context с chat_id
+                    # Но в 99% случаев достаточно просто logger + иногда в чат
+                    logger.info(f"[YUMA THINKS] {text}")
+                    # Если хочешь реально отправить — раскомменти и передай update в main()
+                    # await bot.send_message(chat_id=LAST_CHAT_ID, text=text)
+        except Exception as e:
+            logger.warning(f"EmergentCore say_to_chat error: {e}")
+
+    # ------------------------------------------------------------------
+    #  Сброс скуки при активности пользователя
+    # ------------------------------------------------------------------
+    def on_user_activity(self):
+        self.last_user_message = time.time()
+        self.mood["boredom"] *= 0.5
+        self.mood["loneliness"] *= 0.4
+        self.mood["curiosity"] = min(1.0, self.mood["curiosity"] + 0.2)
+
+# =====================================================================
+# Автоматически создаём ядро при старте
+# =====================================================================
+
+# Подключаем к collect_words (добавь эту строку в конец collect_words):
+# EmergentCore().on_user_activity()
+
 # --- Multi-Head Attention Layer with Dropout and LayerNorm ---
 class MultiHeadAttentionLayer(nn.Module):
     def __init__(self, input_dim, attn_dim, num_heads=4, dropout=0.15):
@@ -845,6 +1041,124 @@ class TransformerMemoryLayer(nn.Module):
         out = out.transpose(0, 1)
         # Return [B, d_model]
         return out[:, 0]
+
+
+# --- FIXED: Resonance compute/train & ReplayBuffer with device consistency and CPU storage ---
+import copy
+
+def calculate_resonance_score(user_msg: dict) -> float:
+    """
+    Calculate a resonance score [0..1] for a single user message using AdvancedResonanceSystem.
+    Features: lang_sync, emotion_sync, semantic_sync, emotion_vector (4), energy, word_count, time_of_day.
+    Splits feature vector into features and emo_vec, passes to advanced_resonance_system.
+    Returns a float in [0.0, 1.0]. Safe against exceptions.
+    """
+    try:
+        text = user_msg.get('text', '') or ''
+        # language sync
+        detected = None
+        try:
+            detected = detect(text) if text else None
+        except Exception:
+            detected = None
+        dominant_lang = yuma_identity.get('meta_analysis', {}).get('languages', {}).get('dominant')
+        if detected and dominant_lang and detected == dominant_lang:
+            lang_sync = 1.0
+        elif detected and dominant_lang and detected in yuma_identity.get('meta_analysis', {}).get('languages', {}).get('distribution', {}):
+            lang_sync = 0.5
+        else:
+            lang_sync = 0.0
+
+        # emotion sync
+        last_vec = user_msg.get('emotion_vector', {})
+        last_strength = sum(last_vec.values())
+        dominant_emotion = yuma_identity.get('meta_analysis', {}).get('dominant_emotions', {}).get('dominant')
+        if last_strength > 0:
+            emotion_sync = 1.0 if last_vec.get(dominant_emotion, 0) > 0 else 0.0
+        else:
+            emotion_sync = 1.0 if dominant_emotion else 0.0
+
+        # semantic sync: overlap with top word_frequencies
+        top_words = set(yuma_identity.get('meta_analysis', {}).get('word_frequencies', {}).keys())
+        user_words = set(re.sub(r'[^\w]', ' ', text.lower()).split())
+        if not top_words:
+            semantic_sync = 0.0
+        else:
+            overlap = len(top_words & user_words)
+            semantic_sync = min(1.0, overlap / 3.0)
+
+        # emotion_vector (order: joy, tension, flow, surprise)
+        emo_vec = [
+            float(last_vec.get('joy', 0)),
+            float(last_vec.get('tension', 0)),
+            float(last_vec.get('flow', 0)),
+            float(last_vec.get('surprise', 0))
+        ]
+        # energy and word_count
+        energy = float(user_msg.get('energy', 0.0))
+        word_count = float(len(user_words))
+        # time_of_day: hour in [0, 1]
+        ts = user_msg.get('timestamp', time.time())
+        hour = (datetime.fromtimestamp(ts).hour % 24) / 24.0
+
+        # Add 2 dummy features to match embedding dimension 12
+        features = [
+            float(lang_sync), float(emotion_sync), float(semantic_sync),
+            emo_vec[0], emo_vec[1], emo_vec[2], emo_vec[3],
+            energy, word_count, hour,
+            0.0, 0.0
+        ]
+        # Features for model: [lang_sync, emotion_sync, semantic_sync, joy, tension, flow, surprise, energy, word_count, hour, 0, 0]
+        # emo_vec for model: [joy, tension, flow, surprise]
+        device = next(advanced_resonance_system.parameters()).device
+        x_tensor = torch.tensor([features], dtype=torch.float32, device=device)
+        emo_tensor = torch.tensor([emo_vec], dtype=torch.float32, device=device)
+        with torch.no_grad():
+            resonance, uncertainty, attn_w, mem_out, emo_probs = advanced_resonance_system(x_tensor, emo_tensor)
+            resonance_val = resonance.item() if hasattr(resonance, "item") else float(resonance)
+        return max(0.0, min(1.0, resonance_val))
+    except Exception:
+        return 0.0
+
+
+# --- Fixed ReplayBuffer storing tensors on CPU and ensuring device consistency ---
+class ReplayBuffer:
+    def __init__(self, maxlen=200):
+        self.buffer = []
+        self.maxlen = maxlen
+
+    def add(self, x, emo_vec, target):
+        # Detach and move to CPU for storage
+        if isinstance(x, torch.Tensor):
+            x = x.detach().cpu()
+        else:
+            x = torch.tensor(x, dtype=torch.float32)
+        if isinstance(emo_vec, torch.Tensor):
+            emo_vec = emo_vec.detach().cpu()
+        else:
+            emo_vec = torch.tensor(emo_vec, dtype=torch.float32)
+        if isinstance(target, torch.Tensor):
+            target = target.detach().cpu()
+        else:
+            target = torch.tensor(target, dtype=torch.float32)
+        if len(self.buffer) >= self.maxlen:
+            self.buffer.pop(0)
+        self.buffer.append((x, emo_vec, target))
+
+    def sample(self, batch_size=16, device=None):
+        if len(self.buffer) == 0:
+            return None, None, None
+        batch_size = min(batch_size, len(self.buffer))
+        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+        samples = [self.buffer[i] for i in indices]
+        xs = torch.stack([s[0] for s in samples])
+        emos = torch.stack([s[1] for s in samples])
+        ys = torch.stack([s[2] for s in samples])
+        if device is not None:
+            xs = xs.to(device)
+            emos = emos.to(device)
+            ys = ys.to(device)
+        return xs, emos, ys
 class AdvancedResonanceSystem(nn.Module):
     def __init__(self, input_dim=12, memory_size=1000, emo_dim=4, hidden_dim=24, attn_dim=None, num_heads=4, attn_dropout=0.15):
         super().__init__()
@@ -1254,9 +1568,12 @@ class MultiLangLearner:
 
 WHISPER_MODEL = None
 
+import tempfile
+
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Асинхронная генерация голоса на основе языка сообщения с использованием asyncio.to_thread для gTTS.
+    Асинхронная обработка голосовых сообщений с использованием временных файлов для аудио,
+    безопасного удаления файлов и сохранения логики: распознавание, определение языка, gTTS, voice_memory, ответ.
     """
     global WHISPER_MODEL
     if WHISPER_MODEL is None:
@@ -1264,13 +1581,22 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     file = await context.bot.get_file(update.message.voice.file_id)
     voice_bytes = await file.download_as_bytearray()
-    temp_ogg = "temp_voice.ogg"
-    with open(temp_ogg, "wb") as f:
-        f.write(voice_bytes)
 
-    result = await asyncio.to_thread(WHISPER_MODEL.transcribe, temp_ogg)
-    text = result.get("text", "").strip()
-    os.remove(temp_ogg)
+    # Use temp files for ogg and ensure cleanup
+    temp_ogg = tempfile.NamedTemporaryFile(delete=False, suffix=".ogg")
+    temp_ogg_path = temp_ogg.name
+    try:
+        temp_ogg.write(voice_bytes)
+        temp_ogg.flush()
+        temp_ogg.close()
+
+        result = await asyncio.to_thread(WHISPER_MODEL.transcribe, temp_ogg_path)
+        text = result.get("text", "").strip()
+    finally:
+        try:
+            os.remove(temp_ogg_path)
+        except Exception:
+            pass
 
     if text:
         # Определяем язык
@@ -1282,13 +1608,21 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             lang = "ja"
 
         async def gtts_to_bytes(text, lang):
-            # gTTS is blocking, so run in thread
+            # gTTS is blocking, so run in thread, use temp file for audio
             def make_bytes():
-                buf = io.BytesIO()
-                tts = gTTS(text=text, lang=lang)
-                tts.write_to_fp(buf)
-                buf.seek(0)
-                return buf.getvalue()
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio:
+                    tts = gTTS(text=text, lang=lang)
+                    tts.write_to_fp(temp_audio)
+                    temp_audio.flush()
+                    temp_audio_path = temp_audio.name
+                # Read back as bytes
+                with open(temp_audio_path, "rb") as f:
+                    data = f.read()
+                try:
+                    os.remove(temp_audio_path)
+                except Exception:
+                    pass
+                return data
             return await asyncio.to_thread(make_bytes)
 
         try:
@@ -1444,7 +1778,7 @@ def calculate_resonance_score(user_msg: dict) -> float:
         x_tensor = torch.tensor([features], dtype=torch.float32).to(device)
         emo_tensor = torch.tensor([emo_vec], dtype=torch.float32).to(device)
         with torch.no_grad():
-            resonance, _, _ = advanced_resonance_system(x_tensor, emo_tensor)
+            resonance, uncertainty, attn_w, mem_out, emo_probs = advanced_resonance_system(x_tensor, emo_tensor)
             resonance_val = resonance.item() if hasattr(resonance, "item") else float(resonance)
         return max(0.0, min(1.0, resonance_val))
     except Exception:
@@ -1461,6 +1795,23 @@ emotional_vectors = {
 }
 sarcasm_levels = ["にゃ", "ふふ", "ユマ", "ナミ", "✨", "🐾", "💥", "😼", "🤖"]
 
+def analyze_recent_emotions(msgs):
+    """Простая заглушка: агрегирует эмоции последних сообщений, чтобы не было ошибки."""
+    agg = {'joy': 0.0, 'tension': 0.0, 'flow': 0.0, 'surprise': 0.0, 'sadness': 0.0}
+
+    if not msgs:
+        return agg
+
+    for m in msgs:
+        vec = m.get("emotion_vector", {}) or {}
+        for k in agg:
+            agg[k] += float(vec.get(k, 0.0))
+
+    total = sum(agg.values()) or 1.0
+    for k in agg:
+        agg[k] /= total
+
+    return agg
 # —————————–
 # Генерация мема
 # —————————–
@@ -1630,6 +1981,19 @@ import math
 
 async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text=None):
     try:
+        # --- Emotional Contagion Layer ---
+        # Analyze last 10 messages and adapt response style
+        try:
+            chat_emotion = analyze_recent_emotions(list(recent_messages)[-10:])
+            if chat_emotion.get('sadness', 0.0) > 0.5:
+                response_style = 'supportive'
+                # Reduce chaos by lowering jp_ratio for active agent
+                if hasattr(MAE, "agents") and MAE.agents:
+                    for _agent in MAE.agents:
+                        if hasattr(_agent, "jp_ratio"):
+                            _agent.jp_ratio = max(0.0, _agent.jp_ratio * 0.5)
+        except Exception as e:
+            logger.warning(f"Emotional contagion error: {e}")
         if text is None:
             text = (update.message.text or update.message.caption or "").lower()
         else:
@@ -1844,10 +2208,8 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
             logger.warning(f"LTM DB save_message_to_db error: {e}")
         # --- advanced_resonance_system: train and calculate resonance ---
         try:
-            import torch
             # Prepare features/target for training if enough history
             if len(recent_messages) > 10:
-                # --- Выбор обучающих примеров с приоритетом по ценности ---
                 def compute_message_value(m):
                     energy = m.get("energy", 0.0)
                     resonance = m.get("resonance", 0.0)
@@ -1861,14 +2223,10 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
                 values = [compute_message_value(m) for m in train_candidates]
                 total_value = sum(values) or 1.0
                 weights = [v / total_value for v in values]
-
-                # Стохастическая выборка по ценности
+                # Stochastic sampling by value
                 train_samples = np.random.choice(train_candidates, size=min(len(train_candidates), 100), replace=True, p=np.array(weights)/np.sum(weights) if np.sum(weights) > 0 else None)
-                train_targets = [m.get('resonance', 0.0) for m in train_samples]
-
                 train_features = []
                 train_emos = []
-
                 for m in train_samples:
                     text = m.get('text', '') or ''
                     detected = None
@@ -1883,7 +2241,6 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
                         lang_sync = 0.5
                     else:
                         lang_sync = 0.0
-
                     last_vec = m.get('emotion_vector', {})
                     last_strength = sum(last_vec.values())
                     dominant_emotion = yuma_identity.get('meta_analysis', {}).get('dominant_emotions', {}).get('dominant')
@@ -1891,7 +2248,6 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
                         emotion_sync = 1.0 if last_vec.get(dominant_emotion, 0) > 0 else 0.0
                     else:
                         emotion_sync = 1.0 if dominant_emotion else 0.0
-
                     top_words = set(yuma_identity.get('meta_analysis', {}).get('word_frequencies', {}).keys())
                     user_words = set(re.sub(r'[^\w]', ' ', text.lower()).split())
                     if not top_words:
@@ -1899,7 +2255,6 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
                     else:
                         overlap = len(top_words & user_words)
                         semantic_sync = min(1.0, overlap / 3.0)
-
                     emo_vec = [
                         float(last_vec.get('joy', 0)),
                         float(last_vec.get('tension', 0)),
@@ -1910,58 +2265,45 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
                     word_count = float(len(user_words))
                     ts = m.get('timestamp', time.time())
                     hour = (datetime.fromtimestamp(ts).hour % 24) / 24.0
-
-                    # Add 2 dummy features to match embedding dimension 12
                     features = [
                         float(lang_sync), float(emotion_sync), float(semantic_sync),
                         emo_vec[0], emo_vec[1], emo_vec[2], emo_vec[3],
                         energy, word_count, hour,
                         0.0, 0.0
                     ]
-
                     train_features.append(features)
                     train_emos.append(emo_vec)
-
-                    # Добавление в replay_buffer при эмоциональной насыщенности
+                    # Add to replay_buffer if emotionally saturated
                     if last_strength >= 2:
-                        replay_buffer.add(torch.tensor(features, dtype=torch.float32),
-                                          torch.tensor(emo_vec, dtype=torch.float32),
-                                          torch.tensor([m.get('resonance', 0.0)], dtype=torch.float32))
-
-                # --- Мини-батчи и стохастическое обучение ---
-                batch_size = 16  # размер мини-батча
-                mini_epochs = 3  # количество итераций обучения на батчах
-
+                        replay_buffer.add(features, emo_vec, [m.get('resonance', 0.0)])
+                # --- Mini-batches and stochastic training ---
+                batch_size = 16
+                mini_epochs = 3
+                device = next(advanced_resonance_system.parameters()).device
                 if len(replay_buffer.buffer) >= batch_size:
-                    # Формируем набор данных из буфера
                     X_all, EMOS_all, y_all = replay_buffer.sample(batch_size=len(replay_buffer.buffer))
-
-                    # Перемешиваем данные
+                    if X_all is not None:
+                        X_all = X_all.to(device)
+                        EMOS_all = EMOS_all.to(device)
+                        y_all = y_all.to(device)
+                    # Shuffle
                     indices = np.arange(len(X_all))
                     np.random.shuffle(indices)
                     X_all = X_all[indices]
                     EMOS_all = EMOS_all[indices]
                     y_all = y_all[indices]
-
-                    device = advanced_resonance_system.parameters().__next__().device
-                    X_all = X_all.to(device)
-                    EMOS_all = EMOS_all.to(device)
-                    y_all = y_all.to(device)
-
                     advanced_resonance_system.train()
                     for epoch in range(mini_epochs):
                         for i in range(0, len(X_all), batch_size):
                             X_batch = X_all[i:i+batch_size]
                             EMOS_batch = EMOS_all[i:i+batch_size]
                             y_batch = y_all[i:i+batch_size]
-
                             advanced_resonance_optimizer.zero_grad()
-                            pred, _, _ = advanced_resonance_system(X_batch, EMOS_batch)
+                            pred, uncertainty, attn_w, mem_out, emo_probs = advanced_resonance_system(X_batch, EMOS_batch)
                             loss = nn.functional.mse_loss(pred, y_batch)
                             loss.backward()
                             advanced_resonance_optimizer.step()
             # Calculate resonance for new message using advanced_resonance_system
-            # Формируем два входа: x_tensor (features) и emo_tensor (эмоции)
             text = msg_entry.get('text', '') or ''
             detected = None
             try:
@@ -1999,23 +2341,21 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
             word_count = float(len(user_words))
             ts = msg_entry.get('timestamp', time.time())
             hour = (datetime.fromtimestamp(ts).hour % 24) / 24.0
-            # Add 2 dummy features to match embedding dimension 12
             features = [
                 float(lang_sync), float(emotion_sync), float(semantic_sync),
                 emo_vec[0], emo_vec[1], emo_vec[2], emo_vec[3],
                 energy, word_count, hour,
                 0.0, 0.0
             ]
-            device = advanced_resonance_system.parameters().__next__().device
-            x_tensor = torch.tensor([features], dtype=torch.float32).to(device)
-            emo_tensor = torch.tensor([emo_vec], dtype=torch.float32).to(device)
+            device = next(advanced_resonance_system.parameters()).device
+            x_tensor = torch.tensor([features], dtype=torch.float32, device=device)
+            emo_tensor = torch.tensor([emo_vec], dtype=torch.float32, device=device)
             with torch.no_grad():
                 r, uncertainty, attn_w, memory_enhanced, emotion_probs = advanced_resonance_system(x_tensor, emo_tensor)
                 r_val = r.item() if hasattr(r, "item") else float(r)
-            # Optionally use uncertainty, attn_w, memory_enhanced, emotion_probs as needed
             resonance_history.append({'ts': time.time(), 'resonance': r_val, 'user': msg_entry.get('user')})
-            # Добавить опыт в replay_buffer
-            replay_buffer.add(x_tensor.squeeze(0), emo_tensor.squeeze(0), torch.tensor([r_val]))
+            # Add experience to replay_buffer (stored on CPU)
+            replay_buffer.add(features, emo_vec, [r_val])
             try:
                 MAE.current_resonance = r_val
                 msg_entry['resonance_state'] = RSM.get_state(r_val)
@@ -2041,8 +2381,13 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
                 word_weights.pop(w)
                 markov_chain.pop(w, None)
                 word_significance.pop(w, None)
+                # --- обновление идентичности, сохранение и пр. ---
         save_data()
         update_yuma_identity()
+
+        # === EmergentCore: пользователь живой → она радуется ===
+        EmergentCore().on_user_activity()
+
     except Exception as e:
         logger.error(f"collect_words: {e}")
 
@@ -2161,8 +2506,58 @@ torch.serialization.add_safe_globals({
 })
 
 
-# --- MultiAgentEngine with extended genome ---
+# --- MultiAgentEngine with extended genome and Shader-like memory ---
 class MultiAgentEngine:
+    """
+    Multi-agent Q-learning engine where each agent carries a small "shader-like"
+    memory buffer. The shader memory is a lightweight numeric buffer that can
+    be sampled with simple uniforms (resonance, time, energy) to produce a
+    coherence score in [0,1]. This coherence is used alongside Q-values to
+    bias agent selection and to guide evolution/crossover.
+    """
+    class ShaderMemory:
+        """A tiny shader-like memory implemented as a vectorized kernel.
+        It stores a small weight map and exposes `sample` and `mutate`.
+        """
+        def __init__(self, size=16, rng=None):
+            self.size = int(size)
+            self.rng = np.random.default_rng() if rng is None else rng
+            # weights simulating a small shader kernel / texture
+            self.weights = self.rng.normal(loc=0.0, scale=0.2, size=(self.size,)).astype(float)
+
+        def sample(self, uniforms: dict) -> float:
+            """Produce a coherence score 0..1 from uniforms.
+            uniforms expected keys: resonance (0..1), energy, time (0..1)
+            """
+            r = float(uniforms.get('resonance', 0.0))
+            e = float(uniforms.get('energy', 0.0))
+            t = float(uniforms.get('time', 0.0))
+            # combine uniforms into a small indexable pattern
+            u = np.array([r, e % 1.0, t % 1.0], dtype=float)
+            # simple mixing: dot with a hashed projection of weights
+            proj = np.tanh(self.weights[:3] if self.size >= 3 else np.pad(self.weights, (0, 3 - len(self.weights))) )
+            val = float(np.dot(proj, u))
+            # map through sigmoid-like clamp to [0,1]
+            coherence = 1.0 / (1.0 + np.exp(-5.0 * (val)))
+            # small stochasticity for diversity
+            coherence = float(np.clip(coherence + (self.rng.random() - 0.5) * 0.03, 0.0, 1.0))
+            return coherence
+
+        def mutate(self, strength: float = 0.12):
+            """Apply small gaussian mutation to weights."""
+            self.weights += self.rng.normal(scale=strength, size=self.weights.shape)
+            # clamp to reasonable range
+            self.weights = np.clip(self.weights, -2.0, 2.0)
+
+        def crossover(self, other: 'MultiAgentEngine.ShaderMemory') -> 'MultiAgentEngine.ShaderMemory':
+            """Create a child shader memory by mixing weights."""
+            child = MultiAgentEngine.ShaderMemory(size=self.size, rng=self.rng)
+            mask = self.rng.random(self.size) > 0.5
+            child.weights = np.where(mask, self.weights, other.weights).copy()
+            # slight smoothing
+            child.weights = (child.weights + 0.02 * self.rng.normal(size=child.weights.shape))
+            return child
+
     def __init__(self):
         style_choices = ["sparkles", "paw prints", "collision", "smirking cat", "robot", "game die", "water wave", "cyclone", "cherry blossom", "new moon"]
         self.agents: List[AgentInterface] = [
@@ -2177,6 +2572,8 @@ class MultiAgentEngine:
             a.jp_ratio = a.genome.jp_ratio
             a.style_emoji = a.genome.style_emoji
             a.meme_affinity = a.genome.meme_affinity
+            # attach shader-like memory to each agent
+            a.shader_memory = MultiAgentEngine.ShaderMemory(size=16)
 
         # Q-learning
         self.Q: Dict[tuple, List[float]] = {}
@@ -2203,12 +2600,44 @@ class MultiAgentEngine:
         if state not in self.Q:
             self.Q[state] = [0.0 for _ in range(n_agents)]
 
+        # Curiosity bonus: force exploration when resonance is too stable
+        try:
+            if getattr(self, "current_resonance", 0.0) > 0.9:
+                self.epsilon = min(1.0, self.epsilon * 1.5)
+        except Exception:
+            pass
+
+        # compute shader coherence for each agent and combine with Q as a soft bias
+        uniforms = {
+            'resonance': float(getattr(self, 'current_resonance', 0.0)),
+            'energy': float(sum(getattr(a, 'energy', 0) for a in self.agents) / max(1, n_agents)),
+            'time': (time.time() % 60) / 60.0
+        }
+        shader_scores = []
+        for a in self.agents:
+            try:
+                sh = getattr(a, 'shader_memory', None)
+                score = sh.sample(uniforms) if sh is not None else 0.5
+            except Exception:
+                score = 0.5
+            shader_scores.append(score)
+
+        # Normalize shader_scores to 0..1 and use as multiplicative preference to Q
+        q_vals = self.Q[state]
+        combined_scores = []
+        for i in range(n_agents):
+            q = float(q_vals[i])
+            # map q to 0..1 via sigmoid-ish scaling (stabilize large values)
+            q_norm = 1.0 / (1.0 + np.exp(-0.6 * (q)))
+            combined = 0.6 * q_norm + 0.4 * float(shader_scores[i])
+            combined_scores.append(combined)
+
+        # epsilon-greedy but biased by combined_scores when exploiting
         if random.random() < self.epsilon:
             action = random.randint(0, n_agents - 1)
         else:
-            q_vals = self.Q[state]
-            max_q = max(q_vals)
-            best_actions = [i for i, q in enumerate(q_vals) if q == max_q]
+            max_val = max(combined_scores)
+            best_actions = [i for i, v in enumerate(combined_scores) if v == max_val]
             action = random.choice(best_actions)
 
         self.last_state = state
@@ -2253,6 +2682,16 @@ class MultiAgentEngine:
         agent_style = getattr(agent, "style_emoji", "—")
         rarity_bonus = 1.0 / (1 + style_counts.get(agent_style, 0))
         value = int(value * (1 + rarity_bonus))
+
+        # small shader-guided reward: if agent shader coherence was high, add micro-bonus
+        try:
+            sh = getattr(agent, 'shader_memory', None)
+            if sh is not None:
+                coherence = sh.sample({'resonance': self.current_resonance, 'energy': value, 'time': (time.time()%60)/60.0})
+                if coherence > 0.7:
+                    value += 1
+        except Exception:
+            pass
 
         # Q-update
         if self.last_state is not None and self.last_action is not None:
@@ -2311,6 +2750,18 @@ class MultiAgentEngine:
         child.jp_ratio = genome.jp_ratio
         child.style_emoji = genome.style_emoji
         child.meme_affinity = genome.meme_affinity
+        # combine shader memories
+        try:
+            sh1 = getattr(parent1, 'shader_memory', None)
+            sh2 = getattr(parent2, 'shader_memory', None)
+            if sh1 is not None and sh2 is not None:
+                child.shader_memory = sh1.crossover(sh2)
+                # small mutation
+                child.shader_memory.mutate(strength=0.08)
+            else:
+                child.shader_memory = MultiAgentEngine.ShaderMemory(size=16)
+        except Exception:
+            child.shader_memory = MultiAgentEngine.ShaderMemory(size=16)
         child.energy = 0
         return child
 
@@ -2827,7 +3278,7 @@ async def troll_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return True
             except Exception as e:
                 logger.error(f"troll_text send_voice error: {e}")
-                await update.message.reply_text("… (голос сломался)")
+                await update.message.reply_text("")
                 return False
 
         # --- Мем ---
@@ -2865,7 +3316,7 @@ async def troll_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         MAE.apply_reward(reward)
     except Exception as e:
         logger.error(f"troll_text: {e}")
-        await update.message.reply_text("にゃん… 声が壊ен…")
+        await update.message.reply_text("")
 
 # —————————–
 # Команды
@@ -3219,7 +3670,7 @@ async def resonance_sync_loop(
 # Запуск
 # —————————–
 async def main():
-    app = Application.builder().token("YourToken").build()
+    app = Application.builder().token("7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI").build()
     await app.initialize()
     WEBAPP_URL = "https://0penagi.github.io/YunaNami/"
 # в handler start:
@@ -3235,7 +3686,10 @@ async def main():
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
     # --- Автономная инициализация ---
     mutres = MutRes()
-    asyncio.create_task(mutres.start())
+    try:
+        await mutres.start()
+    except Exception as e:
+        logger.warning(f"MutRes start failed: {e}")
     asyncio.create_task(auto_reddit_fetch())
     asyncio.create_task(auto_rss_fetch())
     asyncio.create_task(autosave_loop())
