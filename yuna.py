@@ -2390,6 +2390,8 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
         # === EmergentCore: пользователь живой → она радуется ===
         EmergentCore().on_user_activity()
 
+        # === EmergentCore: пользователь живой → она радуется ===
+        EmergentCore().on_user_activity()
     except Exception as e:
         logger.error(f"collect_words: {e}")
 
