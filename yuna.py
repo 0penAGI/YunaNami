@@ -3674,7 +3674,7 @@ async def resonance_sync_loop(
 # Запуск
 # —————————–
 async def main():
-    app = Application.builder().token("7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI").build()
+    app = Application.builder().token("paste your token").build()
     await app.initialize()
     WEBAPP_URL = "https://0penagi.github.io/YunaNami/"
 # в handler start:
