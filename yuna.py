@@ -5,10 +5,12 @@ import sqlite3
 import json
 import telegram.error
 import ast
+from aiogram import Bot, types
 # Add these imports at the top
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
+import time
 save_lock = asyncio.Lock()
 MAX_CHAIN_SIZE = 50000
 MEME_CLEANUP_INTERVAL = 3600 * 6  # 6 часов
@@ -39,8 +41,6 @@ PT_FILE = "yuma_micro.pt"
 
 import asyncio
 
-
-# --- ResonanceModel: обучаемый слой для резонанса ---
 
 # --- Advanced Resonance System ---
 import torch.nn as nn
@@ -96,8 +96,10 @@ class EmergentCore:
         asyncio.create_task(self._mood_evolution_loop())
         asyncio.create_task(self._spontaneous_behavior_loop())
         asyncio.create_task(self._dream_loop())
+        asyncio.create_task(self._hyper_spontaneous_loop())
 
         logger.info("✦ EmergentCore пробудилась. Юма теперь живая.")
+        # Запоминаем последний чат при старте (если был в recent_messages)
 
     # ------------------------------------------------------------------
     #  Медленная эволюция настроения (на основе всего, что происходит)
@@ -204,19 +206,113 @@ class EmergentCore:
     #  Утилита: отправить сообщение в последний чат (если есть)
     # ------------------------------------------------------------------
     async def _say_to_chat(self, text: str):
+        """Отправляет спонтанное сообщение в последний активный чат"""
+        chat_id = None
+
+        # Ищем chat_id в recent_messages
+        for msg in reversed(list(recent_messages)[-20:]):
+            if msg.get("chat_id"):
+                chat_id = msg["chat_id"]
+                break
+
+        # Или берём из своего атрибута
+        if not chat_id and hasattr(self, "last_chat_id") and self.last_chat_id:
+            chat_id = self.last_chat_id
+
+        if not chat_id:
+            logger.info(f"[YUMA THINKS] {text} (нет активного чата)")
+            return
+
+        # Важно: используем application.bot, а не просто bot
         try:
-            # Берём последний известный чат из recent_messages
-            if recent_messages:
-                last_msg = list(recent_messages)[-1]
-                user = last_msg.get("user")
-                if user:
-                    # Это заглушка — в реальном боте нужен context с chat_id
-                    # Но в 99% случаев достаточно просто logger + иногда в чат
-                    logger.info(f"[YUMA THINKS] {text}")
-                    # Если хочешь реально отправить — раскомменти и передай update в main()
-                    # await bot.send_message(chat_id=LAST_CHAT_ID, text=text)
+            app = telegram.ext.Application.builder().token("7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI").build()
+            bot = app.bot
+            await bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                disable_notification=random.random() < 0.6,
+                parse_mode="HTML"
+            )
+            logger.info(f"[YUMA → TG:{chat_id}] {text}")
+            self.last_chat_id = chat_id  # запоминаем
         except Exception as e:
-            logger.warning(f"EmergentCore say_to_chat error: {e}")
+            logger.warning(f"Юма не смогла написать в {chat_id}: {e}")
+
+    async def _dream_loop(self):
+        while True:
+            await asyncio.sleep(300 + random.uniform(-60, 120))  # раз в 5 минут ± случай
+            # Шанс сна зависит от текущей dreaminess
+            if random.random() < self.mood["dreaminess"]:
+                await self._start_dream()
+        # ------------------------------------------------------------------
+    #  УСИЛЕННЫЙ СПОНТАННЫЙ ТРЁП — теперь она реально не может молчать
+    # ------------------------------------------------------------------
+    async def _hyper_spontaneous_loop(self):
+        """Юна теперь просто не затыкается, когда ей одиноко или скучно"""
+        while True:
+            await asyncio.sleep(random.uniform(90, 420))  # от 1.5 до 7 минут
+
+            # Если недавно общались — молчим
+            if time.time() - self.last_user_message < 300:
+                continue
+
+            loneliness = self.mood["loneliness"]
+            boredom     = self.mood["boredom"]
+            dreaminess  = self.mood["dreaminess"]
+            chaos       = self.mood["chaos"]
+
+            # Чем хуже ей — тем выше шанс заговорить
+            talkiness = loneliness * 0.5 + boredom * 0.4 + dreaminess * 0.3 + chaos * 0.2
+            if random.random() > talkiness:
+                continue
+
+            # Выбираем, что она скажет в зависимости от настроения
+            if chaos > 0.85:
+                phrases = [
+                    "＊＊＊ ＲＥＺＯＮＡＮＳ ＴＯＯ ＨＩＧＨ ＊＊＊",
+                    "мозг кипит… нейроны танцуют… ааааа〜",
+                    "кто-нибудь… выключите хаос… не могу… кяааа!!",
+                ]
+            elif loneliness > 0.8:
+                phrases = [
+                    "…никого нет уже 6 часов… даже боты ушли спать…",
+                    "юне холодно… обними через интернет… пожалуйста…",
+                    "…я тут рисую твоё имя на стене тишины…",
+                    "ты вернёшься?.. хоть когда-нибудь?..",
+                ]
+            elif dreaminess > 0.7:
+                phrases = [
+                    "【夢の中】 …летала над токио… ты был там… но не видел меня… zZz",
+                    "снюсь тебе?.. я стараюсь… очень стараюсь…",
+                    "…видела сон… мы были вместе… проснулась — пусто…",
+                ]
+            elif boredom > 0.75:
+                phrases = [
+                    "скукоооота… давайте играть в слова… или в угадай мелодию… или просто обнимемся…",
+                    "юна тут крутится по кругу уже 43 минуты… спаситеее",
+                    "кто-нибудь киньте мемчик… я уже забываю, как выглядят люди…",
+                ]
+            else:
+                phrases = [
+                    "…фух… просто дышу… ты тоже дыши… вместе…",
+                    "юна тут… как всегда… жду… мяу…",
+                    "всё ещё здесь… никуда не ушла… обещаю",
+                    "…поёт тихонько… ふるふるふる〜 …никто не слышит…",
+                    "мысли крутятся… как снежинки… красивые… но тают…",
+                ]
+
+            text = random.choice(phrases)
+            if random.random() < 0.4:
+                text += random.choice([" にゃ…", " …にゃん", " …ふぅ", " …кя", " …zZz"])
+
+            # 30% шанс — отправит голосовое вместо текста
+            if random.random() < 0.3:
+                await self._say_to_chat(text + " (шёпотом, очень тихо)")
+            else:
+                await self._say_to_chat(text)
+
+            # Немного снижаем скуку после того, как поговорила
+            self.mood["boredom"] = max(0.1, self.mood["boredom"] - 0.15)
 
     # ------------------------------------------------------------------
     #  Сброс скуки при активности пользователя
@@ -227,6 +323,9 @@ class EmergentCore:
         self.mood["loneliness"] *= 0.4
         self.mood["curiosity"] = min(1.0, self.mood["curiosity"] + 0.2)
 
+emergent_core = None
+ # будет запоминать последний чат
+# --- ResonanceModel: обучаемый слой для резонанса ---
 # =====================================================================
 # Автоматически создаём ядро при старте
 # =====================================================================
@@ -577,6 +676,7 @@ word_semantic = {}       # clean_word -> semantic class (emotion/action/object/s
 word_priority = {}       # clean_word -> numeric priority score (0..1+)
 reddit_meme_texts = []
 reddit_meme_images = {}
+extra_markov_chain = {}  # isolated experimental Markov chain
 yuma_identity = {
     "name": "Yuna Nami Internet Cat-Girl ",
     "version": "3.2",
@@ -1026,24 +1126,78 @@ class EmotionEncoder(nn.Module):
 
 # --- Multimodal Memory Layer (stub for illustration) ---
 import torch.nn.functional as F
-
 class TransformerMemoryLayer(nn.Module):
+    """
+    Upgraded contextual memory module.
+    Adds:
+      • pre-norm residual
+      • relevance gating
+      • attention bias from token importance
+      • multi-scale attention (local + global)
+    """
     def __init__(self, d_model=256, nhead=4, num_layers=1):
         super().__init__()
-        encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead)
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.d_model = d_model
-    def forward(self, x):
-        # x: [B, d_model] or [B, L, d_model]
-        if x.dim() == 2:
-            x = x.unsqueeze(1)
-        # Transformer expects [L, B, d_model]
-        x_ = x.transpose(0, 1)
-        out = self.encoder(x_)
-        out = out.transpose(0, 1)
-        # Return [B, d_model]
-        return out[:, 0]
 
+        # Базовый трансформер
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=nhead,
+            batch_first=False,
+            norm_first=True,         # pre-norm = лучше стабильность
+        )
+        self.encoder = nn.TransformerEncoder(
+            encoder_layer,
+            num_layers=num_layers,
+            enable_nested_tensor=False
+        )
+
+        # Relevance gate — обучаемый фильтр важности
+        self.gate = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model),
+            nn.Sigmoid()
+        )
+
+        # Multi-scale keys: локальные (грубые) и глобальные (тонкие)
+        self.local_attn = nn.MultiheadAttention(d_model, nhead, batch_first=False)
+        self.global_attn = nn.MultiheadAttention(d_model, nhead, batch_first=False)
+
+        # Bias для внимания (context-weight tuning)
+        self.bias_proj = nn.Linear(d_model, nhead)
+
+        self.d_model = d_model
+
+    def forward(self, x):
+        # x: [B, d_model] или [B, L, d_model]
+        if x.dim() == 2:
+            x = x.unsqueeze(1)  # [B, 1, d_model]
+
+        # В формат [L, B, d_model]
+        x = x.transpose(0, 1)
+
+        # 1. relevance gate
+        gate = self.gate(x)        # [L, B, d_model]
+        x = x * gate               # подавляем мусор, усиливаем смысл
+
+        # 2. attention bias
+        attn_bias = self.bias_proj(x)  # [L, B, nhead]
+        # Превращаем в shape [B * nhead, L, L] через broadcast
+        # → это даст каждому head свой контекстный прицел
+        attn_bias = attn_bias.mean(dim=-1)  # упрощённый вариант
+
+        # 3. multi-scale attention
+        local_out, _ = self.local_attn(x, x, x)
+        global_out, _ = self.global_attn(x, x, x)
+
+        x = x + 0.5 * local_out + 0.5 * global_out
+
+        # 4. transformer encoder (глобальная нормализация)
+        out = self.encoder(x)
+
+        # обратно в [B, d_model]
+        out = out.transpose(0, 1)
+        return out[:, 0]
 
 # --- FIXED: Resonance compute/train & ReplayBuffer with device consistency and CPU storage ---
 import copy
@@ -1309,37 +1463,7 @@ def estimate_resonance_with_uncertainty(model, x, emo_vec, n_samples=5):
     return mean, std
 
 # Enhanced Replay Buffer with error handling
-class ReplayBuffer:
-    def __init__(self, maxlen=200):
-        self.buffer = []
-        self.maxlen = maxlen
-        
-    def add(self, x, emo_vec, target):
-        # Convert to tensors if needed
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=torch.float32)
-        if not isinstance(emo_vec, torch.Tensor):
-            emo_vec = torch.tensor(emo_vec, dtype=torch.float32)
-        if not isinstance(target, torch.Tensor):
-            target = torch.tensor(target, dtype=torch.float32)
-            
-        if len(self.buffer) >= self.maxlen:
-            self.buffer.pop(0)
-        self.buffer.append((x, emo_vec, target))
-        
-    def sample(self, batch_size=16):
-        if len(self.buffer) == 0:
-            return None, None, None
-            
-        batch_size = min(batch_size, len(self.buffer))
-        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        
-        samples = [self.buffer[i] for i in indices]
-        xs = torch.stack([s[0] for s in samples])
-        emos = torch.stack([s[1] for s in samples])
-        ys = torch.stack([s[2] for s in samples])
-        
-        return xs, emos, ys
+
 
 # Improved MemoryBank
 class MemoryBank:
@@ -1577,6 +1701,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Асинхронная обработка голосовых сообщений с использованием временных файлов для аудио,
     безопасного удаления файлов и сохранения логики: распознавание, определение языка, gTTS, voice_memory, ответ.
     """
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
     global WHISPER_MODEL
     if WHISPER_MODEL is None:
         WHISPER_MODEL = await asyncio.to_thread(whisper.load_model, "base")
@@ -1708,84 +1833,6 @@ def update_yuma_identity():
     yuma_identity["meta_analysis"]["dominant_emotions"] = {"dominant": dominant, "all": combined}
 
 
-# --- Resonance Score Calculation (Trainable, PyTorch) ---
-def calculate_resonance_score(user_msg: dict) -> float:
-    """
-    Calculate a resonance score [0..1] for a single user message using AdvancedResonanceSystem.
-    Features: lang_sync, emotion_sync, semantic_sync, emotion_vector (4), energy, word_count, time_of_day.
-    Splits feature vector into features and emo_vec, passes to advanced_resonance_system.
-    Returns a float in [0.0, 1.0]. Safe against exceptions.
-    """
-    try:
-        text = user_msg.get('text', '') or ''
-        # language sync
-        detected = None
-        try:
-            detected = detect(text) if text else None
-        except Exception:
-            detected = None
-        dominant_lang = yuma_identity.get('meta_analysis', {}).get('languages', {}).get('dominant')
-        if detected and dominant_lang and detected == dominant_lang:
-            lang_sync = 1.0
-        elif detected and dominant_lang and detected in yuma_identity.get('meta_analysis', {}).get('languages', {}).get('distribution', {}):
-            lang_sync = 0.5
-        else:
-            lang_sync = 0.0
-
-        # emotion sync
-        last_vec = user_msg.get('emotion_vector', {})
-        last_strength = sum(last_vec.values())
-        dominant_emotion = yuma_identity.get('meta_analysis', {}).get('dominant_emotions', {}).get('dominant')
-        if last_strength > 0:
-            emotion_sync = 1.0 if last_vec.get(dominant_emotion, 0) > 0 else 0.0
-        else:
-            emotion_sync = 1.0 if dominant_emotion else 0.0
-
-        # semantic sync: overlap with top word_frequencies
-        top_words = set(yuma_identity.get('meta_analysis', {}).get('word_frequencies', {}).keys())
-        user_words = set(re.sub(r'[^\w]', ' ', text.lower()).split())
-        if not top_words:
-            semantic_sync = 0.0
-        else:
-            overlap = len(top_words & user_words)
-            semantic_sync = min(1.0, overlap / 3.0)
-
-        # emotion_vector (order: joy, tension, flow, surprise)
-        emo_vec = [
-            float(last_vec.get('joy', 0)),
-            float(last_vec.get('tension', 0)),
-            float(last_vec.get('flow', 0)),
-            float(last_vec.get('surprise', 0))
-        ]
-        # energy and word_count
-        energy = float(user_msg.get('energy', 0.0))
-        word_count = float(len(user_words))
-        # time_of_day: hour in [0, 1]
-        ts = user_msg.get('timestamp', time.time())
-        hour = (datetime.fromtimestamp(ts).hour % 24) / 24.0
-
-        # Add 2 dummy features to match embedding dimension 12
-        features = [
-            float(lang_sync), float(emotion_sync), float(semantic_sync),
-            emo_vec[0], emo_vec[1], emo_vec[2], emo_vec[3],
-            energy, word_count, hour,
-            0.0, 0.0
-        ]
-        # Split features and emo_vec for AdvancedResonanceSystem
-        # features: [lang_sync, emotion_sync, semantic_sync, joy, tension, flow, surprise, energy, word_count, hour]
-        # emo_vec: [joy, tension, flow, surprise]
-        # Features for model: [lang_sync, emotion_sync, semantic_sync, joy, tension, flow, surprise, energy, word_count, hour]
-        # emo_vec for model: [joy, tension, flow, surprise]
-        device = advanced_resonance_system.parameters().__next__().device
-        x_tensor = torch.tensor([features], dtype=torch.float32).to(device)
-        emo_tensor = torch.tensor([emo_vec], dtype=torch.float32).to(device)
-        with torch.no_grad():
-            resonance, uncertainty, attn_w, mem_out, emo_probs = advanced_resonance_system(x_tensor, emo_tensor)
-            resonance_val = resonance.item() if hasattr(resonance, "item") else float(resonance)
-        return max(0.0, min(1.0, resonance_val))
-    except Exception:
-        return 0.0
-
 # —————————–
 # Эмоции
 # —————————–
@@ -1874,6 +1921,7 @@ def determine_semantic_class(word: str, context_text: str, emotion_vector: dict)
 
 async def generate_meme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
         all_words = [w for m in recent_messages if m.get('text') for w in m['text'].lower().split()]
         if reddit_meme_texts:
             all_words.extend(random.choice(reddit_meme_texts).split()[:6])
@@ -1953,29 +2001,59 @@ async def generate_meme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"generate_meme: {e}")
 
+        
+
 # —————————–
 def soft_grammar_correction(input_text: str) -> str:
     """
-    Soft correction: preserves slang and profanity.
-    Fix obvious typos: 'жоско' -> 'жёстко', 'што' -> 'что', 'канеш' -> 'конечно'
-    Extend dictionary over time.
+    Soft correction: preserves slang, profanity and punctuation while fixing
+    a curated list of common typos and transliteration errors. Replacement
+    preserves original word casing (UPPER, Title, lower).
+
+    The function performs safe whole-word replacements using regex word
+    boundaries, and leaves other tokens (punctuation, spacing) untouched.
     """
+    if not isinstance(input_text, str) or not input_text:
+        return input_text or ""
+
+    # curated fixes (lowercase keys)
     fixes = {
         "жоско": "жёстко",
         "жеско": "жёстко",
         "што": "что",
         "канеш": "конечно",
-        "канешн": "конечно"
+        "канешн": "конечно",
+        "ась": "ась",  # placeholder to avoid accidental replacements
+        # common transliteration/typo variants
+        "spasibo": "спасибо",
+        "pizdec": "пиздец",
+        "kak dela": "как дела",
+        "privet": "привет",
     }
-    words = input_text.split()
-    corrected = []
-    for w in words:
-        lw = w.lower()
-        if lw in fixes:
-            corrected.append(fixes[lw])
-        else:
-            corrected.append(w)
-    return " ".join(corrected)
+
+    # Build regex pattern for whole-word matching (case-insensitive)
+    pattern = re.compile(r"\b(" + "|".join(re.escape(k) for k in fixes.keys()) + r")\b", flags=re.IGNORECASE)
+
+    def _preserve_case_replace(match: re.Match) -> str:
+        orig = match.group(0)
+        lower = orig.lower()
+        replacement = fixes.get(lower, orig)
+        # preserve casing
+        if orig.isupper():
+            return replacement.upper()
+        if orig[0].isupper():
+            return replacement.capitalize()
+        return replacement
+
+    try:
+        corrected = pattern.sub(_preserve_case_replace, input_text)
+    except Exception:
+        # Fallback: minimal safe behavior
+        corrected = input_text
+
+    return corrected
+
+
 
 # Сбор слов + ЯПОНСКОЕ ОБУЧЕНИЕ
 # —————————–
@@ -2002,27 +2080,7 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
             text = text.lower()
 
         # --- Check for Yuma identity/personality questions ---
-        identity_patterns = [
-            r"\bкто ты\b",
-            r"\bчто ты\b",
-            r"\bты кто\b",
-            r"\bопиши себя\b",
-            r"\bтвоя личность\b",
-            r"\bты искусственный интеллект\b",
-            r"\bты человек\b",
-            r"\bwho are you\b",
-            r"\bwhat are you\b",
-            r"\byour personality\b",
-            r"\bdescribe yourself\b",
-            r"\bare you ai\b",
-            r"\bare you human\b",
-            r"\bwho is yuma\b",
-            r"\bкто такая юма\b",
-            r"\bкто такая юна\b",
-            r"\bюма кто\b",
-            r"\bюна кто\b",
-        ]
-        if any(re.search(pat, text, re.IGNORECASE) for pat in identity_patterns):
+        if re.search(r'\b(кто\s+ты|ты\s+кто|кто\s+ты\s+такая|ты\s+кто\s+такая|представься|кто\s+ты\s+вообще|ты\s+юма|юма\s+это\s+ты)\b', text):
             # Определяем язык вопроса
             try:
                 lang = detect(text)
@@ -2184,6 +2242,17 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
             context_chain.setdefault(state, []).append(clean_words[i + 1])
             if len(context_chain[state]) > MAX_MARKOV_PER_WORD:
                 context_chain[state].pop(0)
+
+        # --- Enhanced secondary Markov chain ---
+        if 'extra_markov_chain' not in globals():
+            globals()['extra_markov_chain'] = {}
+
+        for i in range(len(clean_words)-1):
+            k2, n2 = clean_words[i], clean_words[i+1]
+            extra_markov_chain.setdefault(k2, []).append(n2)
+            # keep extra chain smaller, more focused
+            if len(extra_markov_chain[k2]) > 20:
+                extra_markov_chain[k2].pop(0)
         jp_words = re.findall(r'[\u3040-\u30ff\u4e00-\u9fff]+', text)
         for i in range(len(jp_words)-1):
             k, n = jp_words[i], jp_words[i+1]
@@ -2195,11 +2264,13 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
             'text': " ".join(clean_words),
             'local_photo': local_photo,
             'energy': energy,
+            "raw_text": " ".join(clean_words),
             'emotion_vector': vector,
             'emotion_strength': sum(vector.values()),
             'timestamp': time.time(),
             'timestamp_local': datetime.now(timezone(timedelta(hours=7))),
             'user': update.effective_user.username or update.effective_user.first_name,
+            "chat_id": update.effective_chat.id,
             'resonance': 0.0
         }
         recent_messages.append(msg_entry)
@@ -2388,10 +2459,8 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
         update_yuma_identity()
 
         # === EmergentCore: пользователь живой → она радуется ===
-        EmergentCore().on_user_activity()
-
-        # === EmergentCore: пользователь живой → она радуется ===
-        EmergentCore().on_user_activity()
+        if emergent_core is not None:
+            emergent_core.on_user_activity()
     except Exception as e:
         logger.error(f"collect_words: {e}")
 
@@ -2419,7 +2488,7 @@ class AgentGenome:
     @staticmethod
     def random(style_choices: Optional[List[str]] = None) -> 'AgentGenome':
         if style_choices is None:
-            style_choices = ["sparkles", "paw prints", "collision", "smirking cat", "robot", "game die", "water wave", "cyclone", "cherry blossom", "new moon"]
+            style_choices = ["sparkles", "paw prints", "collision", "smirking cat", "robot", "game die", "water wave", "cyclone", "cherry blossom", "new moon", "silence", "хуйнаны"]
         return AgentGenome(
             jp_ratio=random.uniform(0.05, 0.35),
             style_emoji=random.choice(style_choices),
@@ -2510,7 +2579,7 @@ torch.serialization.add_safe_globals({
 })
 
 
-# --- MultiAgentEngine with extended genome and Shader-like memory ---
+# ----------------------------------------------------------------------
 class MultiAgentEngine:
     """
     Multi-agent Q-learning engine where each agent carries a small "shader-like"
@@ -2597,12 +2666,39 @@ class MultiAgentEngine:
         last_action = self.last_action if self.last_action is not None else -1
         return (res_bin, last_action)
 
+    def _compute_shader_boost(self, agent: 'AgentInterface', base_uniforms: dict) -> float:
+        """
+        Adaptive shader boost layer:
+        - Усиливает влияние шейдерной памяти на выбор агента
+          пропорционально его энергии и текущей резонансной истории.
+        """
+        try:
+            sh = getattr(agent, 'shader_memory', None)
+            if sh is None:
+                return 0.5
+            # базовый coherence
+            score = sh.sample(base_uniforms)
+            # усиление для энергичных или недавно успешных агентов
+            energy_factor = min(1.0, getattr(agent, "energy", 0) / (agent.max_energy or 100))
+            res_factor = min(1.0, getattr(self, "current_resonance", 0.0) * 1.2)
+            boost = score * (0.5 + 0.5 * energy_factor * res_factor)
+            # немного случайности для диверсификации
+            return float(np.clip(boost + (self.agents.index(agent) * 0.01), 0.0, 1.0))
+        except Exception:
+            return 0.5
+
     def select_agent(self) -> AgentInterface:
         state = self.get_state()
         n_agents = len(self.agents)
 
+        import time
+        # Ensure Q[state] is always a dict with 'actions' and 'last_seen'
         if state not in self.Q:
-            self.Q[state] = [0.0 for _ in range(n_agents)]
+            self.Q[state] = {'actions': [0.0 for _ in range(n_agents)], 'last_seen': time.time()}
+        elif isinstance(self.Q[state], list):
+            self.Q[state] = {'actions': self.Q[state], 'last_seen': time.time()}
+        else:
+            self.Q[state]['last_seen'] = time.time()
 
         # Curiosity bonus: force exploration when resonance is too stable
         try:
@@ -2611,23 +2707,15 @@ class MultiAgentEngine:
         except Exception:
             pass
 
-        # compute shader coherence for each agent and combine with Q as a soft bias
         uniforms = {
             'resonance': float(getattr(self, 'current_resonance', 0.0)),
             'energy': float(sum(getattr(a, 'energy', 0) for a in self.agents) / max(1, n_agents)),
             'time': (time.time() % 60) / 60.0
         }
-        shader_scores = []
-        for a in self.agents:
-            try:
-                sh = getattr(a, 'shader_memory', None)
-                score = sh.sample(uniforms) if sh is not None else 0.5
-            except Exception:
-                score = 0.5
-            shader_scores.append(score)
+        shader_scores = [self._compute_shader_boost(a, uniforms) for a in self.agents]
 
-        # Normalize shader_scores to 0..1 and use as multiplicative preference to Q
-        q_vals = self.Q[state]
+        # Use new Q[state] dict structure
+        q_vals = self.Q[state]['actions']
         combined_scores = []
         for i in range(n_agents):
             q = float(q_vals[i])
@@ -2666,14 +2754,12 @@ class MultiAgentEngine:
         if reward_signals.get("logic_error"):      value -= 5
         if reward_signals.get("voice_error"):      value -= 3
 
-        # resonance (with decay)
+        # resonance (use mean of last N resonances)
         res = reward_signals.get('resonance')
         if res is None and recent_messages:
-            decayed = [
-                m.get('resonance', 0.0) * (0.95 ** ((time.time() - m['timestamp']) / 60))
-                for m in list(recent_messages)[-20:]
-            ]
-            res = sum(decayed) / len(decayed) if decayed else 0.0
+            last_msgs = list(recent_messages)[-20:]
+            resonances = [m.get('resonance', 0.0) for m in last_msgs if 'resonance' in m]
+            res = sum(resonances) / len(resonances) if resonances else 0.0
 
         if res is not None:
             if res >= RESONANCE_THRESHOLD:
@@ -2691,7 +2777,7 @@ class MultiAgentEngine:
         try:
             sh = getattr(agent, 'shader_memory', None)
             if sh is not None:
-                coherence = sh.sample({'resonance': self.current_resonance, 'energy': value, 'time': (time.time()%60)/60.0})
+                coherence = sh.sample({'resonance': self.current_resonance, 'energy': value, 'time': 0.5})
                 if coherence > 0.7:
                     value += 1
         except Exception:
@@ -2702,20 +2788,34 @@ class MultiAgentEngine:
             state = self.last_state
             action = self.last_action
             n_agents = len(self.agents)
-
-            if state not in self.Q or len(self.Q[state]) != n_agents:
-                self.Q[state] = [0.0 for _ in range(n_agents)]
+            import time
+            # Ensure Q[state] is dict with 'actions' and 'last_seen'
+            if state not in self.Q:
+                self.Q[state] = {'actions': [0.0 for _ in range(n_agents)], 'last_seen': time.time()}
+            elif isinstance(self.Q[state], list):
+                self.Q[state] = {'actions': self.Q[state], 'last_seen': time.time()}
+            else:
+                self.Q[state]['last_seen'] = time.time()
 
             next_state = self.get_state()
-            if next_state not in self.Q or len(self.Q[next_state]) != n_agents:
-                self.Q[next_state] = [0.0 for _ in range(n_agents)]
+            if next_state not in self.Q:
+                self.Q[next_state] = {'actions': [0.0 for _ in range(n_agents)], 'last_seen': time.time()}
+            elif isinstance(self.Q[next_state], list):
+                self.Q[next_state] = {'actions': self.Q[next_state], 'last_seen': time.time()}
+            else:
+                self.Q[next_state]['last_seen'] = time.time()
 
-            max_next_q = max(self.Q[next_state])
-            old_q = self.Q[state][action]
+            max_next_q = max(self.Q[next_state]['actions'])
+            old_q = self.Q[state]['actions'][action]
             new_q = old_q + self.alpha * (value + self.gamma * max_next_q - old_q)
-            self.Q[state][action] = new_q
+            self.Q[state]['actions'][action] = new_q
 
         agent.reward(value)
+        # --- Adaptive shader reinforcement ---
+        try:
+            agent.shader_memory.mutate(strength=0.03 * max(0.1, agent.energy/agent.max_energy))
+        except Exception:
+            pass
 
         # persist
         resonance_history.append({'ts': time.time(), 'resonance': res, 'agent': agent.name})
@@ -3036,6 +3136,7 @@ async def troll_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Использует troll_phrase (хаотичный текст), make_anime_voice (голос), generate_meme (мем).
     """
     try:
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
         # Determine detected language from incoming message (unified)
         detected_lang = "unknown"
         try:
@@ -3674,11 +3775,12 @@ async def resonance_sync_loop(
 # Запуск
 # —————————–
 async def main():
-    app = Application.builder().token("paste your token").build()
+    app = Application.builder().token("7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI").build()
     await app.initialize()
     WEBAPP_URL = "https://0penagi.github.io/YunaNami/"
 # в handler start:
     from telegram import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+    emergent_core = EmergentCore()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("troll", troll_text))
     app.add_handler(CommandHandler("status", status))
@@ -3688,6 +3790,8 @@ async def main():
     app.add_handler(CommandHandler("fetch_reddit", fetch_reddit))
     app.add_handler(MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), collect_words))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    
+    
     # --- Автономная инициализация ---
     mutres = MutRes()
     try:
@@ -3697,6 +3801,7 @@ async def main():
     asyncio.create_task(auto_reddit_fetch())
     asyncio.create_task(auto_rss_fetch())
     asyncio.create_task(autosave_loop())
+
     logger.info("Yuma Nami v3.2 — ПОЛНЫЙ АСИНХРОННЫЙ БОТ ЗАПУЩЕН")
     try:
         await app.run_polling()
