@@ -134,7 +134,7 @@ class EmergentCore:
     # ------------------------------------------------------------------
     async def _spontaneous_behavior_loop(self):
         while True:
-            await asyncio.sleep(60 + random.uniform(0, 180))
+            await asyncio.sleep(3600 + random.uniform(-600, 600))
 
             if time.time() - self.last_user_message < 180:  # недавно общались → тихо
                 continue
@@ -178,13 +178,22 @@ class EmergentCore:
                 await self._say_to_chat(thought + " (шепотом)")
 
     async def _send_loneliness_message(self):
-        phrases = [
-            "…тишина… кто-нибудь есть? 誰もいないの…？",
-            "одиноко… 寂しいよ… にゃん…",
-            "я тут… рисую круги в пустоте… ぐるぐる…",
-            "…сплю… но слышу всё… 寝てるけど…聞こえてるよ",
-        ]
-        await self._say_to_chat(random.choice(phrases))
+        # Собираем кандидатов из словаря и недавних сообщений
+        candidates = [w for w, e in word_weights.items() if e > 10]
+        if not candidates:
+            candidates = list(japanese_vocab.values())  # fallback
+
+    # Выбираем случайное количество слов
+        n = random.randint(3, 6)
+        words = random.choices(candidates, k=n)
+
+        # Превращаем их в фразу
+        phrase = " ".join(words)
+
+    # Добавляем случайную эмоциональную частичку
+        phrase += random.choice([" にゃ…", " …にゃん", " …ふぅ", " …кя", " …zZz"])
+
+        await self._say_to_chat(phrase)
 
     async def _chaos_burst(self):
         # Внезапный взрыв активности
@@ -248,20 +257,14 @@ class EmergentCore:
     #  УСИЛЕННЫЙ СПОНТАННЫЙ ТРЁП — теперь она реально не может молчать
     # ------------------------------------------------------------------
     async def _hyper_spontaneous_loop(self):
-        """Юна теперь просто не затыкается, когда ей одиноко или скучно"""
         while True:
-            await asyncio.sleep(random.uniform(90, 420))  # от 1.5 до 7 минут
-
-            # Если недавно общались — молчим
+            await asyncio.sleep(3600 + random.uniform(-600, 600))  # раз в час ±10 минут
             if time.time() - self.last_user_message < 300:
                 continue
-
             loneliness = self.mood["loneliness"]
-            boredom     = self.mood["boredom"]
-            dreaminess  = self.mood["dreaminess"]
-            chaos       = self.mood["chaos"]
-
-            # Чем хуже ей — тем выше шанс заговорить
+            boredom = self.mood["boredom"]
+            dreaminess = self.mood["dreaminess"]
+            chaos = self.mood["chaos"]
             talkiness = loneliness * 0.5 + boredom * 0.4 + dreaminess * 0.3 + chaos * 0.2
             if random.random() > talkiness:
                 continue
@@ -3775,7 +3778,7 @@ async def resonance_sync_loop(
 # Запуск
 # —————————–
 async def main():
-    app = Application.builder().token("7903322421:AAH-Pvamffozz0FuWTBKE73q0YsQrFgTaKI").build()
+    app = Application.builder().token("TOKENHERE").build()
     await app.initialize()
     WEBAPP_URL = "https://0penagi.github.io/YunaNami/"
 # в handler start:
