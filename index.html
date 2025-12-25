@@ -280,6 +280,17 @@
 
     <script>
         // Telegram Web App API
+        let energyLevel = 30;
+        let trollPressure = 0;
+
+        function clamp(v, min, max) {
+            return Math.min(max, Math.max(min, v));
+        }
+
+        function updateEnergy(delta) {
+            energyLevel = clamp(energyLevel + delta, 0, 100);
+            document.getElementById('energyFill').style.width = energyLevel + '%';
+        }
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
@@ -459,9 +470,6 @@
             document.getElementById('langCount').textContent = '6';
             document.getElementById('neuronCount').textContent = (1.2 + Math.random() * 0.3).toFixed(1) + 'M';
             document.getElementById('understanding').textContent = Math.floor(Math.random() * 5 + 95) + '%';
-           
-            const energy = Math.random() * 100;
-            document.getElementById('energyFill').style.width = energy + '%';
         }
 
         // Добавить эмодзи
@@ -477,6 +485,7 @@
             const msg = input.value.trim();
             if (!msg) return;
             showResponse(translations[currentLang].sending);
+            updateEnergy(Math.min(15, msg.length * 0.3));
            
             tg.sendData(JSON.stringify({
                 action: 'message',
@@ -485,11 +494,15 @@
             }));
             
             setTimeout(() => {
-                const responses = smartResponses[currentLang];
+                let responses = smartResponses[currentLang];
+                if (trollPressure >= 3) {
+                    responses = responses.slice(0, 3);
+                }
                 const randomResp = responses[Math.floor(Math.random() * responses.length)];
                 showResponse(randomResp);
                 input.value = '';
                 updateStats();
+                trollPressure = Math.max(0, trollPressure - 1);
             }, 1000);
         }
 
@@ -503,6 +516,7 @@
             }
             
             showResponse(translations[currentLang].analyzing);
+            updateEnergy(5);
             
             setTimeout(() => {
                 const analysis = generateAnalysis(msg, currentLang);
@@ -521,6 +535,7 @@
             }
             
             showResponse(translations[currentLang].translating);
+            updateEnergy(3);
             
             setTimeout(() => {
                 const translation = generateTranslation(msg, currentLang);
@@ -602,6 +617,8 @@
         // Тролль режим
         function trollMode() {
             showResponse(getText('troll_activation'));
+            trollPressure = clamp(trollPressure + 1, 0, 5);
+            updateEnergy(-10);
            
             tg.sendData(JSON.stringify({
                 action: 'troll',
@@ -617,6 +634,7 @@
         // Reddit парсинг
         function fetchReddit() {
             showResponse(getText('reddit_parsing'));
+            updateEnergy(8);
            
             tg.sendData(JSON.stringify({
                 action: 'reddit',
@@ -699,6 +717,9 @@
             initLanguages();
             updateStats();
             setInterval(updateStats, 10000);
+            setInterval(() => {
+                updateEnergy(-1);
+            }, 5000);
             
             // Enter для отправки
             document.getElementById('messageInput').addEventListener('keydown', (e) => {
