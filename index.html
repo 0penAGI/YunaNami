@@ -19,6 +19,25 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            position: relative;
+        }
+        
+        #topBlur, #bottomBlur {
+            position: fixed;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            z-index: 200;
+        }
+        
+        #topBlur {
+            top: 0;
+            height: 150px;
+        }
+        
+        #bottomBlur {
+            bottom: 0;
+            height: 120px;
         }
         
         .chat-container {
@@ -26,6 +45,8 @@
             overflow-y: auto;
             padding: 140px 0 110px 0;
             scroll-behavior: smooth;
+            position: relative;
+            z-index: 1;
         }
         
         .message {
@@ -102,19 +123,19 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: #0a0a0a;
-            padding: 15px;
+            padding: 20px 15px;
             display: flex;
             gap: 10px;
+            align-items: center;
             z-index: 100;
+            pointer-events: none;
         }
         
         .message-input {
             flex: 1;
             padding: 12px 16px;
-            background: #1a1a1a;
+            background: transparent;
             border: none;
-            border-radius: 24px;
             color: #fff;
             font-size: 15px;
             font-family: 'Courier New', monospace;
@@ -122,34 +143,26 @@
             resize: none;
             max-height: 120px;
             overflow-y: auto;
+            pointer-events: all;
         }
         
         .message-input::placeholder {
-            color: #555;
+            color: #666;
         }
         
         .send-btn {
-            width: 48px;
-            height: 48px;
-            background: #1a1a1a;
+            background: transparent;
             border: none;
-            border-radius: 50%;
             color: #fff;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        
-        .send-btn:hover {
-            background: #252525;
+            padding: 8px;
+            transition: opacity 0.2s;
+            pointer-events: all;
         }
         
         .send-btn:active {
-            transform: scale(0.95);
+            opacity: 0.6;
         }
         
         .neural-indicator {
@@ -157,8 +170,8 @@
             top: 110px;
             right: 15px;
             font-size: 11px;
-            color: #444;
-            z-index: 50;
+            color: #888;
+            z-index: 250;
             font-family: 'Courier New', monospace;
         }
         
@@ -195,11 +208,11 @@
             top: 135px;
             right: 15px;
             font-size: 10px;
-            color: #333;
+            color: #666;
             max-width: 120px;
             text-align: right;
             line-height: 1.4;
-            z-index: 50;
+            z-index: 250;
         }
         
         .user-info {
@@ -207,12 +220,15 @@
             top: 110px;
             left: 15px;
             font-size: 10px;
-            color: #444;
-            z-index: 50;
+            color: #666;
+            z-index: 250;
         }
     </style>
 </head>
 <body>
+    <canvas id="topBlur"></canvas>
+    <canvas id="bottomBlur"></canvas>
+    
     <div class="user-info" id="userInfo"></div>
     
     <div class="neural-indicator">
@@ -235,13 +251,104 @@
         <textarea 
             class="message-input" 
             id="messageInput" 
-            placeholder="скажи что-нибудь..."
+            placeholder="введите сообщение..."
             rows="1"
         ></textarea>
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
     </div>
 
+    <script id="blurShader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec2 resolution;
+        uniform float topOrBottom;
+        
+        void main() {
+            vec2 uv = gl_FragCoord.xy / resolution;
+            float alpha;
+            
+            if (topOrBottom > 0.5) {
+                // top blur
+                alpha = smoothstep(1.0, 0.0, uv.y);
+            } else {
+                // bottom blur
+                alpha = smoothstep(0.0, 1.0, uv.y);
+            }
+            
+            alpha = pow(alpha, 1.5) * 0.85;
+            
+            vec3 color = vec3(0.04, 0.04, 0.04);
+            gl_FragColor = vec4(color, alpha);
+        }
+    </script>
+
     <script>
+        function initBlurCanvas(canvasId, isTop) {
+            const canvas = document.getElementById(canvasId);
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) return;
+            
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = (isTop ? 150 : 120) * dpr;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = (isTop ? 150 : 120) + 'px';
+            
+            const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vertexShader, `
+                attribute vec2 position;
+                void main() {
+                    gl_Position = vec4(position, 0.0, 1.0);
+                }
+            `);
+            gl.compileShader(vertexShader);
+            
+            const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragmentShader, document.getElementById('blurShader').textContent);
+            gl.compileShader(fragmentShader);
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            gl.useProgram(program);
+            
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                -1, -1,
+                1, -1,
+                -1, 1,
+                1, 1
+            ]), gl.STATIC_DRAW);
+            
+            const positionLocation = gl.getAttribLocation(program, 'position');
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            
+            const resolutionLocation = gl.getUniformLocation(program, 'resolution');
+            const topOrBottomLocation = gl.getUniformLocation(program, 'topOrBottom');
+            
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            gl.uniform1f(topOrBottomLocation, isTop ? 1.0 : 0.0);
+            
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+        
+        initBlurCanvas('topBlur', true);
+        initBlurCanvas('bottomBlur', false);
+        
+        window.addEventListener('resize', () => {
+            initBlurCanvas('topBlur', true);
+            initBlurCanvas('bottomBlur', false);
+        });
+        
         let tg = window.Telegram.WebApp;
         tg.expand();
         
