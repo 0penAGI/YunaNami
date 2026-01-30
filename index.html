@@ -13,13 +13,21 @@
         }
         body {
             font-family: 'Courier New', monospace;
-            background: #0a0a0a;
             color: #e0e0e0;
             overflow: hidden;
             height: 100vh;
             display: flex;
             flex-direction: column;
             position: relative;
+        }
+        
+        #background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
         }
         
         #topBlur, #bottomBlur {
@@ -79,7 +87,8 @@
         }
         
         .message.user .message-content {
-            background: #1a1a1a;
+            background: rgba(26, 26, 26, 0.6);
+            backdrop-filter: blur(10px);
             color: #fff;
         }
         
@@ -127,7 +136,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            z-index: 100;
+            z-index: 250;
             pointer-events: none;
         }
         
@@ -199,7 +208,7 @@
         }
         
         .chat-container::-webkit-scrollbar-thumb {
-            background: #222;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
         }
         
@@ -226,6 +235,7 @@
     </style>
 </head>
 <body>
+    <canvas id="background"></canvas>
     <canvas id="topBlur"></canvas>
     <canvas id="bottomBlur"></canvas>
     
@@ -257,42 +267,121 @@
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
     </div>
 
-    <script id="blurShader" type="x-shader/x-fragment">
+    <script id="backgroundShader" type="x-shader/x-fragment">
         precision mediump float;
         uniform vec2 resolution;
+        uniform float time;
+        
+        float noise(vec2 p) {
+            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+        
+        float smoothNoise(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            f = f * f * (3.0 - 2.0 * f);
+            
+            float a = noise(i);
+            float b = noise(i + vec2(1.0, 0.0));
+            float c = noise(i + vec2(0.0, 1.0));
+            float d = noise(i + vec2(1.0, 1.0));
+            
+            return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+        
+        float fbm(vec2 p) {
+            float value = 0.0;
+            float amplitude = 0.5;
+            float frequency = 1.0;
+            
+            for(int i = 0; i < 5; i++) {
+                value += amplitude * smoothNoise(p * frequency);
+                frequency *= 2.0;
+                amplitude *= 0.5;
+            }
+            
+            return value;
+        }
+        
+        void main() {
+            vec2 uv = gl_FragCoord.xy / resolution;
+            vec2 p = uv * 3.0;
+            
+            float n1 = fbm(p + time * 0.1);
+            float n2 = fbm(p + time * 0.15 + vec2(100.0));
+            float n3 = fbm(p - time * 0.08 + vec2(200.0));
+            
+            float pattern = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
+            
+            vec3 color1 = vec3(0.02, 0.02, 0.03);
+            vec3 color2 = vec3(0.05, 0.03, 0.08);
+            vec3 color3 = vec3(0.03, 0.05, 0.06);
+            
+            vec3 finalColor = mix(color1, color2, pattern);
+            finalColor = mix(finalColor, color3, sin(pattern * 3.14159) * 0.5 + 0.5);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    </script>
+
+    <script id="glassShader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec2 resolution;
+        uniform float time;
         uniform float topOrBottom;
+        
+        float noise(vec2 p) {
+            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
         
         void main() {
             vec2 uv = gl_FragCoord.xy / resolution;
             float alpha;
             
             if (topOrBottom > 0.5) {
-                // top blur
-                alpha = smoothstep(1.0, 0.0, uv.y);
+                alpha = smoothstep(1.0, 0.3, uv.y);
             } else {
-                // bottom blur
-                alpha = smoothstep(0.0, 1.0, uv.y);
+                alpha = smoothstep(0.0, 0.7, uv.y);
             }
             
-            alpha = pow(alpha, 1.5) * 0.85;
+            alpha = pow(alpha, 2.0);
             
-            vec3 color = vec3(0.04, 0.04, 0.04);
-            gl_FragColor = vec4(color, alpha);
+            vec2 distortion = vec2(
+                noise(uv * 10.0 + time * 0.1) * 0.02,
+                noise(uv * 10.0 + time * 0.15) * 0.02
+            );
+            
+            vec3 glassColor = vec3(0.05, 0.05, 0.06);
+            float edgeGlow = pow(1.0 - abs(uv.y * 2.0 - 1.0), 3.0) * 0.1;
+            glassColor += edgeGlow;
+            
+            alpha *= 0.95;
+            
+            gl_FragColor = vec4(glassColor, alpha);
         }
     </script>
 
     <script>
-        function initBlurCanvas(canvasId, isTop) {
+        function initShaderCanvas(canvasId, shaderSource, uniforms) {
             const canvas = document.getElementById(canvasId);
             const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
             
-            if (!gl) return;
+            if (!gl) return null;
             
             const dpr = window.devicePixelRatio || 1;
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = (isTop ? 150 : 120) * dpr;
-            canvas.style.width = window.innerWidth + 'px';
-            canvas.style.height = (isTop ? 150 : 120) + 'px';
+            
+            if (canvasId === 'background') {
+                canvas.width = window.innerWidth * dpr;
+                canvas.height = window.innerHeight * dpr;
+                canvas.style.width = window.innerWidth + 'px';
+                canvas.style.height = window.innerHeight + 'px';
+            } else {
+                const height = canvasId === 'topBlur' ? 150 : 120;
+                canvas.width = window.innerWidth * dpr;
+                canvas.height = height * dpr;
+                canvas.style.width = window.innerWidth + 'px';
+                canvas.style.height = height + 'px';
+            }
             
             const vertexShader = gl.createShader(gl.VERTEX_SHADER);
             gl.shaderSource(vertexShader, `
@@ -304,7 +393,7 @@
             gl.compileShader(vertexShader);
             
             const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(fragmentShader, document.getElementById('blurShader').textContent);
+            gl.shaderSource(fragmentShader, shaderSource);
             gl.compileShader(fragmentShader);
             
             const program = gl.createProgram();
@@ -316,37 +405,80 @@
             const positionBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-                -1, -1,
-                1, -1,
-                -1, 1,
-                1, 1
+                -1, -1, 1, -1, -1, 1, 1, 1
             ]), gl.STATIC_DRAW);
             
             const positionLocation = gl.getAttribLocation(program, 'position');
             gl.enableVertexAttribArray(positionLocation);
             gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
             
-            const resolutionLocation = gl.getUniformLocation(program, 'resolution');
-            const topOrBottomLocation = gl.getUniformLocation(program, 'topOrBottom');
-            
-            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-            gl.uniform1f(topOrBottomLocation, isTop ? 1.0 : 0.0);
+            const uniformLocations = {};
+            for (let name in uniforms) {
+                uniformLocations[name] = gl.getUniformLocation(program, name);
+            }
             
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
             
+            return { gl, canvas, program, uniformLocations, uniforms };
+        }
+        
+        const backgroundShaderSource = document.getElementById('backgroundShader').textContent;
+        const glassShaderSource = document.getElementById('glassShader').textContent;
+        
+        const background = initShaderCanvas('background', backgroundShaderSource, {
+            resolution: [window.innerWidth, window.innerHeight],
+            time: 0
+        });
+        
+        const topBlur = initShaderCanvas('topBlur', glassShaderSource, {
+            resolution: [window.innerWidth, 150],
+            time: 0,
+            topOrBottom: 1.0
+        });
+        
+        const bottomBlur = initShaderCanvas('bottomBlur', glassShaderSource, {
+            resolution: [window.innerWidth, 120],
+            time: 0,
+            topOrBottom: 0.0
+        });
+        
+        function updateUniforms(shader, time) {
+            if (!shader) return;
+            const { gl, canvas, uniformLocations, uniforms } = shader;
+            
             gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            
+            for (let name in uniformLocations) {
+                const location = uniformLocations[name];
+                const value = name === 'time' ? time : uniforms[name];
+                
+                if (Array.isArray(value)) {
+                    gl.uniform2f(location, value[0], value[1]);
+                } else {
+                    gl.uniform1f(location, value);
+                }
+            }
+            
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
         
-        initBlurCanvas('topBlur', true);
-        initBlurCanvas('bottomBlur', false);
+        let startTime = Date.now();
+        
+        function animate() {
+            const time = (Date.now() - startTime) * 0.001;
+            
+            updateUniforms(background, time);
+            updateUniforms(topBlur, time);
+            updateUniforms(bottomBlur, time);
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
         
         window.addEventListener('resize', () => {
-            initBlurCanvas('topBlur', true);
-            initBlurCanvas('bottomBlur', false);
+            location.reload();
         });
         
         let tg = window.Telegram.WebApp;
