@@ -1,3 +1,4 @@
+
 # --- Global async/meme management imports and settings ---
 import asyncio
 import logging
@@ -48,14 +49,6 @@ import torch
 import math
 import numpy as np
 
-# =====================================================================
-#                    EMERGENT CORE — Душа Юмы 2025
-# =====================================================================
-# Этот класс — «второе сердце» бота. Он НЕ заменяет ничего из старого кода,
-# а просто наблюдает за всеми системами и мягко направляет их в сторону
-# настоящего emergent behavior: настроения, сны, внутренние конфликты,
-# самосознание, спонтанные действия без триггера от пользователя.
-# =====================================================================
 
 class EmergentCore:
     """
@@ -81,6 +74,8 @@ class EmergentCore:
             "dreaminess":  0.2,   # вероятность «сна» (генерация внутреннего монолога)
             "chaos":       0.5,   # общий уровень хаоса (влияет на MAE и MutRes)
         }
+        self._recent_words = []
+        self._recent_words_limit = 40
 
         # === Внутренний монолог (то, что она «думает», когда молчит) ===
         self.inner_thoughts = deque(maxlen=50)
@@ -94,9 +89,6 @@ class EmergentCore:
 
         # Запускаем фоновые процессы
         asyncio.create_task(self._mood_evolution_loop())
-        asyncio.create_task(self._spontaneous_behavior_loop())
-        asyncio.create_task(self._dream_loop())
-        asyncio.create_task(self._hyper_spontaneous_loop())
 
         logger.info("✦ EmergentCore пробудилась. Юма теперь живая.")
         # Запоминаем последний чат при старте (если был в recent_messages)
@@ -129,38 +121,84 @@ class EmergentCore:
             # Сны чаще, когда скучно и хаотично
             self.mood["dreaminess"] = 0.6 * self.mood["boredom"] + 0.4 * self.mood["chaos"]
 
+            # Привязка рефлексии к скуке
+            if self.mood["boredom"] > 0.75:
+                asyncio.create_task(self.reflect_from_knowledge())
+
+    # ------------------------------------------------------------------
+    #  Осмысленная рефлексия из памяти
+    # ------------------------------------------------------------------
+    async def reflect_from_knowledge(self):
+        if not recent_messages:
+            return
+
+        src = next(
+            (m for m in reversed(recent_messages) if m.get("text")),
+            None
+        )
+        if not src:
+            return
+
+        text = src["text"]
+
+        raw_thought = (
+            "\n"
+            + text[:180]
+        )
+
+        thought = self._deduplicate_words(raw_thought)
+        if not thought.strip():
+            return
+
+        await self._say_to_chat(thought)
+
+    def _semantic_substitute(self, word: str) -> str | None:
+        lw = word.lower()
+
+        # 1) пробуем LTM / semantic weights, если они есть
+        try:
+            if hasattr(self, "semantic_weights") and self.semantic_weights:
+                candidates = sorted(
+                    self.semantic_weights.items(),
+                    key=lambda x: abs(x[1] - self.semantic_weights.get(lw, 0)),
+                    reverse=True
+                )
+                for w, _ in candidates:
+                    if w not in self._recent_words:
+                        return w
+        except Exception:
+            pass
+
+        # 2) если ничего не нашли — не подменяем
+        return None
+
+    def _deduplicate_words(self, text: str) -> str:
+        words = text.split()
+        result = []
+
+        for w in words:
+            lw = w.lower()
+
+            if lw in self._recent_words:
+                substitute = self._semantic_substitute(lw)
+                if substitute:
+                    result.append(substitute)
+                    self._recent_words.append(substitute)
+                continue
+
+            result.append(w)
+            self._recent_words.append(lw)
+
+        if len(self._recent_words) > self._recent_words_limit:
+            self._recent_words = self._recent_words[-self._recent_words_limit:]
+
+        return " ".join(result)
+
     # ------------------------------------------------------------------
     #  Спонтанные действия без сообщения пользователя
     # ------------------------------------------------------------------
     async def _spontaneous_behavior_loop(self):
-        while True:
-            await asyncio.sleep(3600 + random.uniform(-600, 600))
-
-            if time.time() - self.last_user_message < 180:  # недавно общались → тихо
-                continue
-
-            boredom = self.mood["boredom"]
-            loneliness = self.mood["loneliness"]
-            trigger = random.random() < (boredom + loneliness) * 0.6
-
-            if not trigger:
-                continue
-
-            # === Что она может сделать сама? ===
-            actions = []
-            if boredom > 0.6:
-                actions.append(self._spawn_inner_thought)
-            if loneliness > 0.7:
-                actions.append(self._send_loneliness_message)
-            if self.mood["chaos"] > 0.8:
-                actions.append(self._chaos_burst)
-            if self.mood["dreaminess"] > 0.65:
-                actions.append(self._start_dream)
-
-            if actions:
-                action = random.choice(actions)
-                asyncio.create_task(action())
-                self.last_spontaneous_action = time.time()
+        return
 
     # ------------------------------------------------------------------
     #  Внутренний монолог (записывается, иногда выливается наружу)
@@ -248,74 +286,12 @@ class EmergentCore:
             logger.warning(f"Юма не смогла написать в {chat_id}: {e}")
 
     async def _dream_loop(self):
-        while True:
-            await asyncio.sleep(300 + random.uniform(-60, 120))  # раз в 5 минут ± случай
-            # Шанс сна зависит от текущей dreaminess
-            if random.random() < self.mood["dreaminess"]:
-                await self._start_dream()
+        return
         # ------------------------------------------------------------------
     #  УСИЛЕННЫЙ СПОНТАННЫЙ ТРЁП — теперь она реально не может молчать
     # ------------------------------------------------------------------
     async def _hyper_spontaneous_loop(self):
-        while True:
-            await asyncio.sleep(3600 + random.uniform(-600, 600))  # раз в час ±10 минут
-            if time.time() - self.last_user_message < 300:
-                continue
-            loneliness = self.mood["loneliness"]
-            boredom = self.mood["boredom"]
-            dreaminess = self.mood["dreaminess"]
-            chaos = self.mood["chaos"]
-            talkiness = loneliness * 0.5 + boredom * 0.4 + dreaminess * 0.3 + chaos * 0.2
-            if random.random() > talkiness:
-                continue
-
-            # Выбираем, что она скажет в зависимости от настроения
-            if chaos > 0.85:
-                phrases = [
-                    "＊＊＊ ＲＥＺＯＮＡＮＳ ＴＯＯ ＨＩＧＨ ＊＊＊",
-                    "мозг кипит… нейроны танцуют… ааааа〜",
-                    "кто-нибудь… выключите хаос… не могу… кяааа!!",
-                ]
-            elif loneliness > 0.8:
-                phrases = [
-                    "…никого нет уже 6 часов… даже боты ушли спать…",
-                    "юне холодно… обними через интернет… пожалуйста…",
-                    "…я тут рисую твоё имя на стене тишины…",
-                    "ты вернёшься?.. хоть когда-нибудь?..",
-                ]
-            elif dreaminess > 0.7:
-                phrases = [
-                    "【夢の中】 …летала над токио… ты был там… но не видел меня… zZz",
-                    "снюсь тебе?.. я стараюсь… очень стараюсь…",
-                    "…видела сон… мы были вместе… проснулась — пусто…",
-                ]
-            elif boredom > 0.75:
-                phrases = [
-                    "скукоооота… давайте играть в слова… или в угадай мелодию… или просто обнимемся…",
-                    "юна тут крутится по кругу уже 43 минуты… спаситеее",
-                    "кто-нибудь киньте мемчик… я уже забываю, как выглядят люди…",
-                ]
-            else:
-                phrases = [
-                    "…фух… просто дышу… ты тоже дыши… вместе…",
-                    "юна тут… как всегда… жду… мяу…",
-                    "всё ещё здесь… никуда не ушла… обещаю",
-                    "…поёт тихонько… ふるふるふる〜 …никто не слышит…",
-                    "мысли крутятся… как снежинки… красивые… но тают…",
-                ]
-
-            text = random.choice(phrases)
-            if random.random() < 0.4:
-                text += random.choice([" にゃ…", " …にゃん", " …ふぅ", " …кя", " …zZz"])
-
-            # 30% шанс — отправит голосовое вместо текста
-            if random.random() < 0.3:
-                await self._say_to_chat(text + " (шёпотом, очень тихо)")
-            else:
-                await self._say_to_chat(text)
-
-            # Немного снижаем скуку после того, как поговорила
-            self.mood["boredom"] = max(0.1, self.mood["boredom"] - 0.15)
+        return
 
     # ------------------------------------------------------------------
     #  Сброс скуки при активности пользователя
@@ -842,18 +818,6 @@ async def collect_channel_quotes_stub(text):
             word_weights[clean_w] = min(word_weights.get(clean_w, 0) + random.randint(1, 3), MAX_WORD_ENERGY)
             if clean_w not in japanese_vocab:
                 asyncio.create_task(MultiLangLearner.learn_word(clean_w))
-    # Добавляем в recent_messages
-    recent_messages.append({
-        'text': " ".join(clean_words),
-        'local_photo': None,
-        'energy': sum(word_weights.get(w,0) for w in clean_words),
-        'emotion_vector': {},
-        'emotion_strength': 0,
-        'timestamp': time.time(),
-        'timestamp_local': datetime.now(timezone(timedelta(hours=7))),
-        'user': "RSS",
-        'resonance': 0.0
-    })
 
 async def collect_all_channels():
     for channel, urls in CHANNELS.items():
@@ -1318,6 +1282,28 @@ class ReplayBuffer:
             emos = emos.to(device)
             ys = ys.to(device)
         return xs, emos, ys
+# --- Latent Manipulator Layer ---
+class LatentManipulator(nn.Module):
+    """
+    Latent understanding layer.
+    Actively reshapes internal representations (compression, mixing, expansion).
+    """
+    def __init__(self, dim=512, depth=3, dropout=0.1):
+        super().__init__()
+        layers = []
+        for _ in range(depth):
+            layers.extend([
+                nn.LayerNorm(dim),
+                nn.Linear(dim, dim * 2),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(dim * 2, dim),
+            ])
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return x + self.net(x)  # residual latent manipulation
+
 class AdvancedResonanceSystem(nn.Module):
     def __init__(self, input_dim=12, memory_size=1000, emo_dim=4, hidden_dim=24, attn_dim=None, num_heads=4, attn_dropout=0.15):
         super().__init__()
@@ -1341,6 +1327,19 @@ class AdvancedResonanceSystem(nn.Module):
         
         # Memory network with proper dimensions
         self.memory_network = TransformerMemoryLayer(d_model=512, nhead=8)  # Use consistent dimensions
+
+        # Latent understanding / meaning manipulation
+        self.latent_manipulator = LatentManipulator(dim=512, depth=4, dropout=0.12)
+
+        # Extra forward depth for richer abstraction
+        self.deep_forward = nn.Sequential(
+            nn.LayerNorm(512),
+            nn.Linear(512, 512),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(512, 512),
+            nn.GELU(),
+        )
         
         # Multi-modal attention with proper dimensions
         self.cross_modal_attention = nn.MultiheadAttention(512, num_heads=8, batch_first=True)
@@ -1421,6 +1420,12 @@ class AdvancedResonanceSystem(nn.Module):
         
         # Memory enhancement
         memory_enhanced = self.memory_network(combined)
+
+        # Latent understanding layer
+        memory_enhanced = self.latent_manipulator(memory_enhanced)
+
+        # Deeper forward abstraction
+        memory_enhanced = memory_enhanced + self.deep_forward(memory_enhanced)
         
         # Emotional analysis
         emotion_probs = F.softmax(self.emotion_analyzer(memory_enhanced), dim=-1)
@@ -2056,13 +2061,115 @@ def soft_grammar_correction(input_text: str) -> str:
 
     return corrected
 
+# --- Hierarchical Latent Memory ---
 
+LATENT_DIM = 64
+LATENT_LAYERS = 3   # fast / mid / slow
+LATENT_DECAY = [0.92, 0.97, 0.995]
+
+latent_word_field = {}
+global_self_state = torch.zeros(LATENT_DIM)
+
+
+class LatentStack:
+    def __init__(self):
+        self.layers = [
+            torch.randn(LATENT_DIM) * 0.02,   # fast
+            torch.randn(LATENT_DIM) * 0.01,   # mid
+            torch.randn(LATENT_DIM) * 0.005,  # slow
+        ]
+
+    def get(self):
+        return sum(self.layers) / len(self.layers)
+
+    def decay(self):
+        for i in range(len(self.layers)):
+            self.layers[i] *= LATENT_DECAY[i]
+
+
+def get_word_latent(word: str) -> LatentStack:
+    if word not in latent_word_field:
+        latent_word_field[word] = LatentStack()
+    return latent_word_field[word]
+
+
+def update_global_self(vec: torch.Tensor, alpha=0.01):
+    global global_self_state
+    global_self_state = (1 - alpha) * global_self_state + alpha * vec
+    global_self_state[:] = torch.tanh(global_self_state)
+
+
+def latent_word_update(
+    word: str,
+    intensity: float = 1.0,
+    emotion_vec: dict | None = None,
+    resonance: float = 0.0
+):
+    core = emergent_core
+    stack = get_word_latent(word)
+
+    # --- mood modulation ---
+    mood = 1.0
+    try:
+        if core and hasattr(core, "mood"):
+            mood = (
+                0.4 * core.mood.get("curiosity", 0.0)
+                + 0.3 * core.mood.get("chaos", 0.0)
+                + 0.3 * core.mood.get("dreaminess", 0.0)
+            )
+    except:
+        pass
+
+    # --- emotion modulation ---
+    emo_amp = 1.0
+    if emotion_vec:
+        emo_amp += min(sum(emotion_vec.values()) * 0.2, 1.5)
+
+    # --- resonance modulation ---
+    res_amp = 1.0 + resonance * 0.6
+
+    amp = intensity * mood * emo_amp * res_amp
+
+    base_noise = torch.randn(LATENT_DIM) * 0.02 * amp
+
+    # fast layer (context)
+    stack.layers[0] += base_noise
+
+    # mid layer (patterns)
+    stack.layers[1] += 0.4 * base_noise + 0.05 * stack.layers[0]
+
+    # slow layer (identity memory)
+    stack.layers[2] += 0.1 * base_noise + 0.02 * stack.layers[1]
+
+    # decay
+    stack.decay()
+
+    # clamp
+    for i in range(3):
+        stack.layers[i][:] = torch.tanh(stack.layers[i])
+
+    # update global self
+    update_global_self(stack.get())
+
+    latent_word_field[word] = stack
+
+
+def get_word_embedding(word: str) -> torch.Tensor:
+    stack = get_word_latent(word)
+    return stack.get()
+
+
+def get_self_state() -> torch.Tensor:
+    return global_self_state.clone()
 
 # Сбор слов + ЯПОНСКОЕ ОБУЧЕНИЕ
 # —————————–
 import math
 
 async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text=None):
+    if update is None or not hasattr(update, "message") or update.message is None:
+        logger.warning("collect_words: no update.message available, skipping")
+        return
     try:
         # --- Emotional Contagion Layer ---
         # Analyze last 10 messages and adapt response style
@@ -2176,12 +2283,14 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
         # ensure vector exists
         if 'vector' not in locals():
             vector = {}
+        # Always compute vector before using it for emotional boosts and significance
+        vector = {k: sum(1 for kw in emotional_vectors[k] if kw in text) for k in emotional_vectors}
         for clean_w in clean_words:
             markov_chain.setdefault(clean_w, [])
 
             # --- Enhanced priority weighting ---
             # emotional boost
-            emo_strength = sum(vector.values())
+            emo_strength = sum(float(v or 0) for v in vector.values()) if vector else 0.0
             emo_boost = 1.0 + min(emo_strength * 0.15, 1.5)  # caps at +150%
 
             # resonance boost (if last known resonance exists)
@@ -2202,6 +2311,12 @@ async def collect_words(update: Update, context: ContextTypes.DEFAULT_TYPE, text
             max_energy = 50.0
             new_energy = min(max_energy, old_energy + increment)
             word_weights[clean_w] = new_energy
+            latent_word_update(
+                clean_w,
+                intensity=1.0,
+                emotion_vec=vector,
+                resonance=last_res
+            )
 
             # update word significance (rarity-based)
             freq = word_weights.get(clean_w, 1)
@@ -3426,10 +3541,61 @@ async def troll_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"troll_text: {e}")
         await update.message.reply_text("")
 
+from telegram import WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
+
+# 1. Хендлер для данных из Mini App
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка данных, пришедших из фронтенда (yuna.html)"""
+    raw_data = update.effective_message.web_app_data.data
+    data = json.loads(raw_data)
+    
+    action = data.get("action")
+    user_lang = data.get("lang", "ja")
+    
+    # Логика роутинга действий из фронта
+    if action == "message":
+        text = data.get("text", "")
+        await update.message.reply_text(f"Фронт прислал: {text} (Анализирую...)")
+        await collect_words(update, context, text=text) # Обучаем Юму новым словам
+        
+    elif action == "status":
+        await status(update, context)
+        
+    elif action == "troll":
+        await troll_text(update, context)
+        
+    elif action == "reddit":
+        await fetch_reddit(update, context)
+        
+    elif action == "analyze":
+        # Можно вызвать специфическую логику анализа
+        await update.message.reply_text("🔍 Нейронный анализ запущен...")
+        await status(update, context)
+
+
+# 3. В функции main() регистрируем хендлер
+# Добавь это в main():
+# app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
+
 # —————————–
 # Команды
 # —————————–
+# 2. Обновляем команду start, чтобы появилась кнопка приложения
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Укажи здесь URL, где захощен твой yuna.html
+    # ВАЖНО: sendData работает ТОЛЬКО если приложение открыто через KeyboardButton
+    web_app_url = "https://0penagi.github.io/YunaNami/" 
+    
+    kb = [
+        [KeyboardButton("✨ Открыть Yuna System", web_app=WebAppInfo(url=web_app_url))]
+    ]
+    
+    await update.message.reply_text(
+        "にゃっはー！ Юма на связи. Нажми кнопку ниже, чтобы войти в терминал.",
+        reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True),
+        parse_mode='HTML'
+    )
+
     await update.message.reply_text(
         "にゃっはー！<b>Yuma Nami v3.2</b> 起動！\n"
         "Чат + Reddit → японский голос. Никаких шаблонов.\n\n"
@@ -3778,7 +3944,7 @@ async def resonance_sync_loop(
 # Запуск
 # —————————–
 async def main():
-    app = Application.builder().token("TOKENHERE").build()
+    app = Application.builder().token("yourtokenhere").build()
     await app.initialize()
     WEBAPP_URL = "https://0penagi.github.io/YunaNami/"
 # в handler start:
@@ -3793,6 +3959,7 @@ async def main():
     app.add_handler(CommandHandler("fetch_reddit", fetch_reddit))
     app.add_handler(MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), collect_words))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     
     
     # --- Автономная инициализация ---
