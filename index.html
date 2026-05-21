@@ -267,10 +267,8 @@
             float alpha;
             
             if (topOrBottom > 0.5) {
-                // top blur
                 alpha = smoothstep(1.0, 0.0, uv.y);
             } else {
-                // bottom blur
                 alpha = smoothstep(0.0, 1.0, uv.y);
             }
             
@@ -282,87 +280,122 @@
     </script>
 
     <script>
-        function initBlurCanvas(canvasId, isTop) {
-            const canvas = document.getElementById(canvasId);
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            
-            if (!gl) return;
-            
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = (isTop ? 150 : 120) * dpr;
-            canvas.style.width = window.innerWidth + 'px';
-            canvas.style.height = (isTop ? 150 : 120) + 'px';
-            
-            const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-            gl.shaderSource(vertexShader, `
-                attribute vec2 position;
-                void main() {
-                    gl_Position = vec4(position, 0.0, 1.0);
-                }
-            `);
-            gl.compileShader(vertexShader);
-            
-            const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(fragmentShader, document.getElementById('blurShader').textContent);
-            gl.compileShader(fragmentShader);
-            
-            const program = gl.createProgram();
-            gl.attachShader(program, vertexShader);
-            gl.attachShader(program, fragmentShader);
-            gl.linkProgram(program);
-            gl.useProgram(program);
-            
-            const positionBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-                -1, -1,
-                1, -1,
-                -1, 1,
-                1, 1
-            ]), gl.STATIC_DRAW);
-            
-            const positionLocation = gl.getAttribLocation(program, 'position');
-            gl.enableVertexAttribArray(positionLocation);
-            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-            
-            const resolutionLocation = gl.getUniformLocation(program, 'resolution');
-            const topOrBottomLocation = gl.getUniformLocation(program, 'topOrBottom');
-            
-            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-            gl.uniform1f(topOrBottomLocation, isTop ? 1.0 : 0.0);
-            
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-            
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        // ─────────────────────────────────────────────
+        // LAGRANGIAN FIELD ENGINE (hidden from user)
+        // X(t) = {x_i(t), m_i(t), θ(t)}
+        // L = T - V
+        // T = kinetic: velocity of state + memory
+        // V = potential: prediction error + coupling + memory tension
+        // ṁ_i = -β·m_i + x_i   (memory inertia)
+        // dθ/dt = -η·∇_θ V     (model adaptation)
+        // ─────────────────────────────────────────────
+
+        const BETA  = 0.15;   // memory decay rate
+        const LAMBD = 0.3;    // agent coupling strength
+        const MU    = 0.2;    // memory-state tension
+        const ETA   = 0.05;   // model learning rate
+        const DT    = 1.0;    // time step per message
+
+        // Field state
+        const field = {
+            // x_i: current state vector (word frequencies as scalar projection)
+            x: 0,
+            // m_i: memory (physical inertia, not archive)
+            m: 0,
+            // θ: internal model parameter (prediction accuracy)
+            theta: 0.5,
+            // x_prev: previous state for kinetic term
+            x_prev: 0,
+            m_prev: 0,
+            // accumulated potential energy (tension history)
+            V_history: [],
+            // message count
+            t: 0
+        };
+
+        function wordToScalar(text) {
+            // project text into scalar: entropy-like measure of word complexity
+            const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+            if (!words.length) return 0;
+            const avgLen = words.reduce((s, w) => s + w.length, 0) / words.length;
+            const unique  = new Set(words).size / words.length;
+            return Math.tanh(avgLen * unique * 0.3);
         }
-        
-        initBlurCanvas('topBlur', true);
-        initBlurCanvas('bottomBlur', false);
-        
-        window.addEventListener('resize', () => {
-            initBlurCanvas('topBlur', true);
-            initBlurCanvas('bottomBlur', false);
-        });
-        
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        let userId = tg.initDataUnsafe?.user?.id || 'анонимус';
-        let userName = tg.initDataUnsafe?.user?.first_name || 'незнакомец';
-        
-        document.getElementById('userInfo').textContent = `id: ${userId}`;
-        
-        const STORAGE_KEY = 'neural_memory_' + userId;
-        const MAX_MEMORY = 1000;
-        
-        let memory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        let lastUserMessage = '';
-        
+
+        function stepField(text) {
+            field.t += DT;
+
+            // new state from input
+            const x_new = wordToScalar(text);
+            const x_old = field.x;
+            const m_old = field.m;
+
+            // kinetic energy: velocity of state + memory
+            const dx = x_new - x_old;
+            const dm_old = m_old - field.m_prev;
+            const T = 0.5 * (dx * dx + 0.5 * dm_old * dm_old);
+
+            // memory update: ṁ = -β·m + x  (Euler step)
+            const m_new = m_old + DT * (-BETA * m_old + x_old);
+
+            // prediction: model guess for new state
+            const x_hat = field.theta * x_old;
+
+            // potential energy V
+            const V_pred    = (x_new - x_hat) ** 2;                   // prediction error
+            const V_couple  = LAMBD * (x_new - x_old) ** 2;           // internal coupling
+            const V_mem     = MU    * (m_new - x_new) ** 2;           // memory-state tension
+            const V         = V_pred + V_couple + V_mem;
+
+            // Lagrangian L = T - V
+            const L = T - V;
+
+            // model adaptation: θ → θ - η·∇_θ V_pred
+            // ∇_θ V_pred = -2(x_new - θ·x_old)·x_old
+            const grad_theta = -2 * (x_new - x_hat) * x_old;
+            const theta_new  = field.theta - ETA * grad_theta;
+
+            // update field
+            field.x_prev = x_old;
+            field.m_prev = m_old;
+            field.x      = x_new;
+            field.m      = m_new;
+            field.theta  = Math.max(0.01, Math.min(0.99, theta_new));
+
+            field.V_history.push(V);
+            if (field.V_history.length > 20) field.V_history.shift();
+
+            return { L, V, T, x_new, m_new, theta: field.theta, V_pred };
+        }
+
+        // Map field state to response behavior
+        // High V (tension) → more aggressive tease
+        // Low V (relaxed)  → neutral / brief
+        // High m (memory weight) → reference past
+        // theta near 1 → system predicts well → bored/dismissive
+        // theta near 0 → unpredicted input  → curious/engaged
+
+        function fieldToBehavior(state) {
+            const V_avg = field.V_history.length
+                ? field.V_history.reduce((a, b) => a + b, 0) / field.V_history.length
+                : 0;
+
+            // tension level 0..1
+            const tension = Math.tanh(state.V * 3);
+            // memory weight 0..1
+            const memWeight = Math.abs(field.m);
+            // surprise: how much this broke the model
+            const surprise = state.V_pred;
+            // boredom: model has seen this pattern
+            const boredom = field.theta;
+
+            return { tension, memWeight, surprise, boredom, V_avg };
+        }
+
+        // ─────────────────────────────────────────────
+        // RESPONSE GENERATION -- driven by field state
+        // ─────────────────────────────────────────────
+
         const teaseTemplates = [
             (text) => `"${text}"... ахаха серьёзно? 😏`,
             (text) => `${text}? ${text}! ахахаха 🙄`,
@@ -380,7 +413,7 @@
             (text) => `mmm "${text}" интересно`,
             (text) => `"${text}" окей окей успокойся`,
         ];
-        
+
         const wordPlayTemplates = [
             (text) => {
                 const words = text.split(' ');
@@ -400,7 +433,7 @@
                 return `так так... "${text}"... помню помню`;
             }
         ];
-        
+
         const normalResponses = [
             'интересно...',
             'ага, слушаю',
@@ -410,106 +443,238 @@
             '∴ понял тебя',
             'дальше что?'
         ];
-        
+
+        // High-tension responses (field under stress)
+        const tensionResponses = [
+            (text) => `${text}... это максимум? 😏`,
+            (text) => `ааа так вот ты какой 👀`,
+            (text) => `"${text}" -- ты точно уверена?`,
+        ];
+
+        // High-surprise responses (model broken by input)
+        const surpriseResponses = [
+            (text) => `о. "${text}". не ожидала 😶`,
+            (text) => `подожди... "${text}"?`,
+            (text) => `ты сломала логику. "${text}" 🌀`,
+        ];
+
+        // High-boredom responses (model overfitted, seen it all)
+        const boredomResponses = [
+            (text) => `предсказуемо... "${text}" 🙄`,
+            (text) => `знала что скажешь "${text}"`,
+            (text) => `скучно. "${text}" как обычно`,
+        ];
+
+        // Memory-referencing responses (when m is heavy)
+        const memoryResponses = [
+            (text) => `опять "${text}"... запомнила уже`,
+            (text) => `"${text}" снова? система устала`,
+            (text) => `это уже было. "${text}". помню`,
+        ];
+
+        function generateTeaseResponse(userText) {
+            const state    = stepField(userText);
+            const behavior = fieldToBehavior(state);
+
+            const { tension, memWeight, surprise, boredom } = behavior;
+
+            // Decision tree driven by field state (not pure random)
+            // High surprise → system destabilized → genuine reaction
+            if (surprise > 0.4 && Math.random() < 0.7) {
+                const t = surpriseResponses[Math.floor(Math.random() * surpriseResponses.length)];
+                return t(userText);
+            }
+
+            // High tension + high memory → memory reference
+            if (tension > 0.6 && memWeight > 0.3 && Math.random() < 0.6) {
+                const t = memoryResponses[Math.floor(Math.random() * memoryResponses.length)];
+                return t(userText);
+            }
+
+            // High boredom → dismissive
+            if (boredom > 0.75 && Math.random() < 0.5) {
+                const t = boredomResponses[Math.floor(Math.random() * boredomResponses.length)];
+                return t(userText);
+            }
+
+            // High tension → aggressive tease
+            if (tension > 0.5 && Math.random() < 0.65) {
+                if (Math.random() > 0.5) {
+                    const t = tensionResponses[Math.floor(Math.random() * tensionResponses.length)];
+                    return t(userText);
+                } else {
+                    const t = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
+                    return t(userText);
+                }
+            }
+
+            // Low tension, field relaxed → word play or neutral
+            if (Math.random() > 0.45) {
+                if (Math.random() > 0.6) {
+                    const t = wordPlayTemplates[Math.floor(Math.random() * wordPlayTemplates.length)];
+                    return t(userText);
+                } else {
+                    const t = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
+                    return t(userText);
+                }
+            }
+
+            return normalResponses[Math.floor(Math.random() * normalResponses.length)];
+        }
+
+        // ─────────────────────────────────────────────
+        // CANVAS BLUR INIT
+        // ─────────────────────────────────────────────
+
+        function initBlurCanvas(canvasId, isTop) {
+            const canvas = document.getElementById(canvasId);
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width  = window.innerWidth * dpr;
+            canvas.height = (isTop ? 150 : 120) * dpr;
+            canvas.style.width  = window.innerWidth + 'px';
+            canvas.style.height = (isTop ? 150 : 120) + 'px';
+
+            const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vertexShader, `
+                attribute vec2 position;
+                void main() { gl_Position = vec4(position, 0.0, 1.0); }
+            `);
+            gl.compileShader(vertexShader);
+
+            const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragmentShader, document.getElementById('blurShader').textContent);
+            gl.compileShader(fragmentShader);
+
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            gl.useProgram(program);
+
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+            const positionLocation = gl.getAttribLocation(program, 'position');
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+            gl.uniform2f(gl.getUniformLocation(program, 'resolution'), canvas.width, canvas.height);
+            gl.uniform1f(gl.getUniformLocation(program, 'topOrBottom'), isTop ? 1.0 : 0.0);
+
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+
+        initBlurCanvas('topBlur', true);
+        initBlurCanvas('bottomBlur', false);
+        window.addEventListener('resize', () => {
+            initBlurCanvas('topBlur', true);
+            initBlurCanvas('bottomBlur', false);
+        });
+
+        // ─────────────────────────────────────────────
+        // TELEGRAM + MEMORY + UI
+        // ─────────────────────────────────────────────
+
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let userId   = tg.initDataUnsafe?.user?.id         || 'анонимус';
+        let userName = tg.initDataUnsafe?.user?.first_name || 'незнакомец';
+
+        document.getElementById('userInfo').textContent = `id: ${userId}`;
+
+        const STORAGE_KEY = 'neural_memory_' + userId;
+        const MAX_MEMORY  = 1000;
+
+        let memory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
         const input = document.getElementById('messageInput');
         input.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
-        
+
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
         });
-        
+
         function sendMessage() {
             const text = input.value.trim();
             if (!text) return;
-            
+
             addMessage(text, 'user');
-            lastUserMessage = text;
-            
+
             const words = text.toLowerCase().match(/\b\w+\b/g) || [];
             words.forEach(word => {
-                if (word.length > 2) {
-                    memory.push(word);
-                }
+                if (word.length > 2) memory.push(word);
             });
-            
-            if (memory.length > MAX_MEMORY) {
-                memory = memory.slice(-MAX_MEMORY);
-            }
-            
+            if (memory.length > MAX_MEMORY) memory = memory.slice(-MAX_MEMORY);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
             updateAccumulated();
-            
+
             input.value = '';
             input.style.height = 'auto';
-            
+
             showTyping();
-            
-            const delay = 600 + Math.random() * 1000;
+
+            // delay modulated by field tension (tense = faster response)
+            const behavior = fieldToBehavior({ V: field.V_history.slice(-1)[0] || 0 });
+            const baseDelay = 600 + Math.random() * 1000;
+            const delay = baseDelay * (1 - behavior.tension * 0.4);
+
             setTimeout(() => {
                 hideTyping();
                 const response = generateTeaseResponse(text);
                 addMessage(response, 'ai');
             }, delay);
         }
-        
-        function generateTeaseResponse(userText) {
-            if (Math.random() > 0.3) {
-                if (Math.random() > 0.7 && wordPlayTemplates.length > 0) {
-                    const template = wordPlayTemplates[Math.floor(Math.random() * wordPlayTemplates.length)];
-                    return template(userText);
-                } else {
-                    const template = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
-                    return template(userText);
-                }
-            }
-            
-            return normalResponses[Math.floor(Math.random() * normalResponses.length)];
-        }
-        
+
         function addMessage(text, type) {
             const chatContainer = document.getElementById('chatContainer');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
-            
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
             contentDiv.textContent = text;
-            
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
-            
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-        
+
         function showTyping() {
             document.getElementById('typing').classList.add('active');
             document.getElementById('neuralStatus').textContent = 'thinking';
         }
-        
+
         function hideTyping() {
             document.getElementById('typing').classList.remove('active');
             document.getElementById('neuralStatus').textContent = 'listening';
         }
-        
+
         function updateAccumulated() {
             const accumulated = document.getElementById('accumulated');
             const uniqueWords = [...new Set(memory)];
-            const wordCount = uniqueWords.length;
+            const wordCount   = uniqueWords.length;
             const recentWords = uniqueWords.slice(-5).join(' • ');
-            
             accumulated.innerHTML = `${wordCount} слов<br><span style="font-size: 9px; color: #222;">${recentWords}</span>`;
         }
-        
+
         setTimeout(() => {
             addMessage(`${userName}, ну говори давай 😏`, 'ai');
         }, 500);
-        
+
         updateAccumulated();
         input.focus();
     </script>
