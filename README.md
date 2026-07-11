@@ -1,6 +1,6 @@
 # 🐱 Yuna Nami - Neural Chaos AI Chatbot
 
-**🚀 TRY YUNA NAMI NOW: [@YunaNami_bot](https://t.me/YunaNami_bot) on Telegram**
+**🚀 TRY YUNA NAMI NOW: [@YunaNami_bot](https://t.me/YunaNamibot) on Telegram**
 
 <div align="center">
 
