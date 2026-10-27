@@ -1,813 +1,526 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>∴ yuna tease</title>
-    <script src="https://telegram.org/js/telegram-web-app.js?62"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Courier New', monospace;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>∴ yuna tease</title>
+<script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+<style>
+/* Everything is driven by Telegram theme variables; the dark values are fallbacks for plain browsers. */
+:root {
+  color-scheme: dark;
+  --bg: var(--tg-theme-bg-color, #0a0a0a);
+  --text: var(--tg-theme-text-color, #e6e6e6);
+  --hint: var(--tg-theme-hint-color, #8d8d8d);
+  --bubble: var(--tg-theme-secondary-bg-color, #1a1a1a);
+  --line: var(--tg-theme-section-separator-color, rgba(127,127,127,.22));
+  --btn: var(--tg-theme-button-color, #fff);
+  --btn-text: var(--tg-theme-button-text-color, #000);
+  --accent: var(--tg-theme-accent-text-color, #7ab8ff);
+  --top: calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+  --bottom: calc(var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
+  --left: calc(var(--tg-safe-area-inset-left, env(safe-area-inset-left, 0px)) + var(--tg-content-safe-area-inset-left, 0px));
+  --right: calc(var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px)) + var(--tg-content-safe-area-inset-right, 0px));
+}
+:root[data-scheme="light"] { color-scheme: light; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); }
+body {
+  color: var(--text);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
 
-        #topBlur, #bottomBlur {
-            position: fixed;
-            left: 0;
-            right: 0;
-            pointer-events: none;
-            z-index: 200;
-        }
+.app {
+  position: fixed; inset: 0;
+  max-width: 720px; margin: 0 auto;
+  padding-left: var(--left); padding-right: var(--right);
+  display: flex; flex-direction: column;
+}
 
-        #topBlur {
-            top: 0;
-            height: 150px;
-        }
+/* Field HUD: sits below Telegram's own controls, fades into the chat */
+.hud {
+  position: relative; z-index: 2; flex: none;
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: calc(var(--top) + 8px) 16px 6px;
+  background: var(--bg);
+  font: 11px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--hint);
+}
+.hud::after, .composer::before {
+  content: ""; position: absolute; left: 0; right: 0; height: 28px; pointer-events: none;
+}
+.hud::after { top: 100%; background: linear-gradient(var(--bg), transparent); }
+.composer::before { bottom: 100%; background: linear-gradient(transparent, var(--bg)); }
+.hud-r { min-width: 0; max-width: 62%; text-align: right; }
+.status { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+.acc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        #bottomBlur {
-            bottom: 0;
-            padding-bottom: max(20px, var(--tg-safe-area-inset-bottom, 0px));
-            height: 120px;
-        }
+.chat {
+  position: relative; z-index: 1; flex: 1; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth;
+  padding: 20px 12px 16px;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.message { display: flex; margin-bottom: 12px; animation: rise .28s ease-out both; }
+.message.user { justify-content: flex-end; }
+.message-content {
+  max-width: min(82%, 34rem); padding: 10px 14px; border-radius: 18px;
+  overflow-wrap: anywhere;
+}
+.message.user .message-content {
+  background: var(--bubble); border: 1px solid var(--line); border-bottom-right-radius: 6px;
+}
+.message.ai .message-content { font-style: italic; padding-left: 4px; }
 
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding-top: calc(140px + var(--tg-content-safe-area-inset-top, 0px));
-            padding-bottom: calc(110px + var(--tg-content-safe-area-inset-bottom, 0px));
-            padding-left: var(--tg-safe-area-inset-left, 0px);
-            padding-right: var(--tg-safe-area-inset-right, 0px);
-            scroll-behavior: smooth;
-            position: relative;
-            z-index: 1;
-        }
+.composer {
+  position: relative; z-index: 2; flex: none;
+  padding: 8px 12px calc(var(--bottom) + 10px);
+  background: var(--bg);
+}
+.typing { display: none; padding: 0 6px 6px; color: var(--hint); font-size: 14px; }
+.typing.active { display: block; }
+.typing span { animation: pulse 1.4s infinite; }
+.typing span:nth-child(2) { animation-delay: .2s; }
+.typing span:nth-child(3) { animation-delay: .4s; }
+.row { display: flex; align-items: flex-end; gap: 8px; }
+.message-input {
+  flex: 1; min-height: 44px; max-height: 120px; padding: 11px 16px;
+  border: 1px solid var(--line); border-radius: 22px;
+  background: var(--bubble); color: var(--text);
+  font: inherit; line-height: 1.3; resize: none; outline: none;
+}
+.message-input::placeholder { color: var(--hint); }
+.send-btn {
+  flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: var(--btn); color: var(--btn-text);
+  font-size: 22px; line-height: 1; cursor: pointer;
+  transition: transform .15s, opacity .15s;
+}
+.send-btn:active { transform: scale(.92); }
+.send-btn:disabled { opacity: .35; cursor: default; }
+.message-input:focus-visible, .send-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-        .message {
-            margin-bottom: 18px;
-            padding: 0 15px;
-            opacity: 0;
-            animation: fadeIn 0.4s forwards;
-        }
-
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-
-        .message.user {
-            text-align: right;
-        }
-
-        .message.ai {
-            text-align: left;
-        }
-
-        .message-content {
-            display: inline-block;
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            position: relative;
-            word-wrap: break-word;
-            background: transparent;
-        }
-
-        .message.user .message-content {
-            background: #1a1a1a;
-            color: #fff;
-        }
-
-        .message.ai .message-content {
-            background: transparent;
-            color: #aaa;
-            font-style: italic;
-        }
-
-        .typing {
-            display: none;
-            padding: 12px 16px;
-            margin-left: 15px;
-            color: #666;
-            font-size: 14px;
-        }
-
-        .typing.active {
-            display: block;
-        }
-
-        .typing span {
-            animation: pulse 1.4s infinite;
-        }
-
-        .typing span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        .input-container {
-            position: fixed;
-            bottom: 0;
-            padding-bottom: max(20px, var(--tg-safe-area-inset-bottom, 0px));
-            left: 0;
-            right: 0;
-            padding: 20px 15px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 12px 16px;
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 15px;
-            font-family: 'Courier New', monospace;
-            outline: none;
-            resize: none;
-            max-height: 120px;
-            overflow-y: auto;
-            pointer-events: all;
-        }
-
-        .message-input::placeholder {
-            color: #666;
-        }
-
-        .send-btn {
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 8px;
-            transition: opacity 0.2s;
-            pointer-events: all;
-        }
-
-        .send-btn:active {
-            opacity: 0.6;
-        }
-
-        .neural-indicator {
-            position: fixed;
-            top: 110px;
-            right: 15px;
-            font-size: 11px;
-            color: #888;
-            z-index: 250;
-            font-family: 'Courier New', monospace;
-        }
-
-        .neural-indicator .pulse {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: #0f0;
-            border-radius: 50%;
-            margin-right: 6px;
-            animation: neuralPulse 2s infinite;
-        }
-
-        @keyframes neuralPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        .chat-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .chat-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb {
-            background: #222;
-            border-radius: 3px;
-        }
-
-        .accumulated {
-            position: fixed;
-            top: 135px;
-            right: 15px;
-            font-size: 10px;
-            color: #666;
-            max-width: 120px;
-            text-align: right;
-            line-height: 1.4;
-            z-index: 250;
-        }
-
-        .user-info {
-            position: fixed;
-            top: 110px;
-            left: 15px;
-            font-size: 10px;
-            color: #666;
-            z-index: 250;
-        }
-    </style>
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pulse { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }
+.lite *, .lite ::before, .lite ::after { animation: none !important; transition: none !important; }
+</style>
 </head>
 <body>
-    <canvas id="topBlur"></canvas>
-    <canvas id="bottomBlur"></canvas>
-
-    <div class="user-info" id="userInfo"></div>
-
-    <div class="neural-indicator">
-        <span class="pulse"></span><span id="neuralStatus">listening</span>
+<div class="app">
+  <header class="hud">
+    <div id="userInfo"></div>
+    <div class="hud-r">
+      <div class="status"><i class="dot"></i><span id="neuralStatus">listening</span></div>
+      <div class="acc" id="accumulated"></div>
     </div>
+  </header>
 
-    <div class="accumulated" id="accumulated"></div>
+  <main class="chat" id="chatContainer" role="log" aria-live="polite" aria-label="переписка"></main>
 
-    <div class="chat-container" id="chatContainer" role="log" aria-live="polite" aria-label="переписка"></div>
-
-    <div class="typing" id="typing">
-        <span>•</span><span>•</span><span>•</span>
+  <footer class="composer">
+    <div class="typing" id="typing" role="status" aria-label="печатает"><span>•</span><span>•</span><span>•</span></div>
+    <div class="row">
+      <textarea class="message-input" id="messageInput" placeholder="введите сообщение..." aria-label="сообщение" rows="1"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" aria-label="отправить" disabled>↑</button>
     </div>
-
-    <div class="input-container">
-        <textarea
-            class="message-input"
-            id="messageInput"
-            placeholder="введите сообщение..."
-            aria-label="сообщение"
-            rows="1"
-        ></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()" aria-label="отправить">↑</button>
-    </div>
-
-    <script id="blurShader" type="x-shader/x-fragment">
-        precision mediump float;
-        uniform vec2 resolution;
-        uniform float topOrBottom;
-
-        void main() {
-            vec2 uv = gl_FragCoord.xy / resolution;
-            float alpha;
-
-            if (topOrBottom > 0.5) {
-                alpha = smoothstep(1.0, 0.0, uv.y);
-            } else {
-                alpha = smoothstep(0.0, 1.0, uv.y);
-            }
-
-            alpha = pow(alpha, 1.5) * 0.85;
-
-            vec3 color = vec3(0.04, 0.04, 0.04);
-            gl_FragColor = vec4(color, alpha);
-        }
-    </script>
-
-    <script>
-        // ─────────────────────────────────────────────
-        // TELEGRAM STUB (for testing outside a real client)
-        // Mirrors just the surface this file actually touches,
-        // backed by localStorage so DeviceStorage calls still work.
-        // ─────────────────────────────────────────────
-
-        if (!window.Telegram || !window.Telegram.WebApp) {
-            const memStore = {};
-            window.Telegram = {
-                WebApp: {
-                    initDataUnsafe: {},
-                    expand() {},
-                    ready() {},
-                    hideKeyboard() {},
-                    isVersionAtLeast() { return true; },
-                    showConfirm(msg, cb) { cb && cb(window.confirm(msg)); },
-                    HapticFeedback: {
-                        impactOccurred() {},
-                        notificationOccurred() {},
-                        selectionChanged() {}
-                    },
-                    SettingsButton: {
-                        show() {}, hide() {}, onClick() {}
-                    },
-                    DeviceStorage: {
-                        setItem(key, value, cb) {
-                            try { localStorage.setItem(key, value); cb && cb(null, true); }
-                            catch (e) { cb && cb(e); }
-                        },
-                        getItem(key, cb) {
-                            try { cb && cb(null, localStorage.getItem(key)); }
-                            catch (e) { cb && cb(e); }
-                        }
-                    }
-                }
-            };
-        }
-
-        // ─────────────────────────────────────────────
-        // LAGRANGIAN FIELD ENGINE (hidden from user)
-        // X(t) = {x_i(t), m_i(t), θ(t)}
-        // L = T - V
-        // T = kinetic: velocity of state + memory
-        // V = potential: prediction error + coupling + memory tension
-        // ṁ_i = -β·m_i + x_i   (memory inertia)
-        // dθ/dt = -η·∇_θ V     (model adaptation)
-        // ─────────────────────────────────────────────
-
-        const BETA  = 0.15;   // memory decay rate
-        const LAMBD = 0.3;    // agent coupling strength
-        const MU    = 0.2;    // memory-state tension
-        const ETA   = 0.05;   // model learning rate
-        const DT    = 1.0;    // time step per message
-
-        // Field state
-        const field = {
-            x: 0,
-            m: 0,
-            theta: 0.5,
-            x_prev: 0,
-            m_prev: 0,
-            V_history: [],
-            t: 0
-        };
-
-        function wordToScalar(text) {
-            const words = text.toLowerCase().match(/\b\w+\b/g) || [];
-            if (!words.length) return 0;
-            const avgLen = words.reduce((s, w) => s + w.length, 0) / words.length;
-            const unique  = new Set(words).size / words.length;
-            return Math.tanh(avgLen * unique * 0.3);
-        }
-
-        function stepField(text) {
-            field.t += DT;
-
-            const x_new = wordToScalar(text);
-            const x_old = field.x;
-            const m_old = field.m;
-
-            const dx = x_new - x_old;
-            const dm_old = m_old - field.m_prev;
-            const T = 0.5 * (dx * dx + 0.5 * dm_old * dm_old);
-
-            const m_new = m_old + DT * (-BETA * m_old + x_old);
-
-            const x_hat = field.theta * x_old;
-
-            const V_pred    = (x_new - x_hat) ** 2;
-            const V_couple  = LAMBD * (x_new - x_old) ** 2;
-            const V_mem     = MU    * (m_new - x_new) ** 2;
-            const V         = V_pred + V_couple + V_mem;
-
-            const L = T - V;
-
-            const grad_theta = -2 * (x_new - x_hat) * x_old;
-            const theta_new  = field.theta - ETA * grad_theta;
-
-            field.x_prev = x_old;
-            field.m_prev = m_old;
-            field.x      = x_new;
-            field.m      = m_new;
-            field.theta  = Math.max(0.01, Math.min(0.99, theta_new));
-
-            field.V_history.push(V);
-            if (field.V_history.length > 20) field.V_history.shift();
-
-            return { L, V, T, x_new, m_new, theta: field.theta, V_pred };
-        }
-
-        function fieldToBehavior(state) {
-            const V_avg = field.V_history.length
-                ? field.V_history.reduce((a, b) => a + b, 0) / field.V_history.length
-                : 0;
-
-            const tension   = Math.tanh(state.V * 3);
-            const memWeight = Math.abs(field.m);
-            const surprise  = state.V_pred ?? 0;
-            const boredom   = field.theta;
-
-            return { tension, memWeight, surprise, boredom, V_avg };
-        }
-
-        // ─────────────────────────────────────────────
-        // RESPONSE GENERATION — driven by field state
-        // ─────────────────────────────────────────────
-
-        const teaseTemplates = [
-            (text) => `"${text}"... ахаха серьёзно? 😏`,
-            (text) => `${text}? ${text}! ахахаха 🙄`,
-            (text) => `"${text}" блять... смешно 😂`,
-            (text) => `${text}, ${text}, ${text}... скучно`,
-            (text) => `"${text}"... и чё дальше?`,
-            (text) => `оооо "${text}" какой умный 🤓`,
-            (text) => `${text}??? ты серьёзно сейчас?`,
-            (text) => `"${text}" - ну ну, продолжай 😼`,
-            (text) => `${text}... ага, конечно 🙃`,
-            (text) => `"${text}" типа да да 💅`,
-            (text) => `${text}! ${text}! довольна? 😏`,
-            (text) => `повторяешь "${text}"... зачем?`,
-            (text) => `бея! "${text}" ахахаха`,
-            (text) => `mmm "${text}" интересно`,
-            (text) => `"${text}" окей окей успокойся`,
-        ];
-
-        const wordPlayTemplates = [
-            (text) => {
-                const words = text.split(' ');
-                if (words.length > 1) {
-                    return `${words[0]}... ${words[0]}... ${words[words.length - 1]} 😏`;
-                }
-                return `${text}... ${text.slice(0, 3)}... ахаха`;
-            },
-            (text) => {
-                if (text.length > 5) {
-                    return `"${text.slice(0, -2)}-${text.slice(0, -2)}-${text}" 🙄`;
-                }
-                return `"${text}-${text}" хихи`;
-            },
-            (text, recall) => {
-                return recall
-                    ? `так так... "${text}"... это прям как "${recall}" тогда`
-                    : `так так... "${text}"... помню помню`;
-            }
-        ];
-
-        const normalResponses = [
-            'интересно...',
-            'ага, слушаю',
-            'ну давай дальше',
-            'mmm окей',
-            'и?',
-            '∴ понял тебя',
-            'дальше что?'
-        ];
-
-        const tensionResponses = [
-            (text) => `${text}... это максимум? 😏`,
-            (text) => `ааа так вот ты какой 👀`,
-            (text) => `"${text}" — ты точно уверена?`,
-        ];
-
-        const surpriseResponses = [
-            (text) => `о. "${text}". не ожидала 😶`,
-            (text) => `подожди... "${text}"?`,
-            (text) => `ты сломала логику. "${text}" 🌀`,
-        ];
-
-        const boredomResponses = [
-            (text) => `предсказуемо... "${text}" 🙄`,
-            (text) => `знала что скажешь "${text}"`,
-            (text) => `скучно. "${text}" как обычно`,
-        ];
-
-        // Now actually cite something the user said before, when available.
-        const memoryResponses = [
-            (text, recall) => recall ? `опять как в тот раз с "${recall}"... запомнила` : `опять "${text}"... запомнила уже`,
-            (text, recall) => recall ? `"${recall}" тоже помню, если что` : `"${text}" снова? система устала`,
-            (text, recall) => recall ? `ты уже говорила "${recall}"... и теперь это?` : `это уже было. "${text}". помню`,
-        ];
-
-        // last few AI lines, used to avoid immediate repeats
-        let lastResponses = [];
-
-        // pulls a word from memory that isn't from the message just sent
-        function pickMemoryWord() {
-            if (memory.length < 6) return null;
-            const pool = memory.slice(0, -5);
-            if (!pool.length) return null;
-            return pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        function pickResponse(userText, behavior) {
-            const { tension, memWeight, surprise, boredom } = behavior;
-            const recall = pickMemoryWord();
-
-            if (surprise > 0.4 && Math.random() < 0.7) {
-                const t = surpriseResponses[Math.floor(Math.random() * surpriseResponses.length)];
-                return t(userText);
-            }
-
-            if (tension > 0.6 && memWeight > 0.3 && Math.random() < 0.6) {
-                const t = memoryResponses[Math.floor(Math.random() * memoryResponses.length)];
-                return t(userText, recall);
-            }
-
-            if (boredom > 0.75 && Math.random() < 0.5) {
-                const t = boredomResponses[Math.floor(Math.random() * boredomResponses.length)];
-                return t(userText);
-            }
-
-            if (tension > 0.5 && Math.random() < 0.65) {
-                if (Math.random() > 0.5) {
-                    const t = tensionResponses[Math.floor(Math.random() * tensionResponses.length)];
-                    return t(userText);
-                } else {
-                    const t = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
-                    return t(userText);
-                }
-            }
-
-            if (Math.random() > 0.45) {
-                if (Math.random() > 0.6) {
-                    const t = wordPlayTemplates[Math.floor(Math.random() * wordPlayTemplates.length)];
-                    return t(userText, recall);
-                } else {
-                    const t = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
-                    return t(userText);
-                }
-            }
-
-            return normalResponses[Math.floor(Math.random() * normalResponses.length)];
-        }
-
-        function generateTeaseResponse(userText) {
-            // field steps exactly once per message; retries below only re-roll the template
-            const state = stepField(userText);
-            const behavior = fieldToBehavior(state);
-
-            let response;
-            let attempts = 0;
-            do {
-                response = pickResponse(userText, behavior);
-                attempts++;
-            } while (lastResponses.includes(response) && attempts < 4);
-
-            lastResponses.push(response);
-            if (lastResponses.length > 3) lastResponses.shift();
-
-            return { text: response, behavior };
-        }
-
-        // ─────────────────────────────────────────────
-        // CANVAS BLUR INIT
-        // ─────────────────────────────────────────────
-
-        function initBlurCanvas(canvasId, isTop) {
-            const canvas = document.getElementById(canvasId);
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            if (!gl) return;
-
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width  = window.innerWidth * dpr;
-            canvas.height = (isTop ? 150 : 120) * dpr;
-            canvas.style.width  = window.innerWidth + 'px';
-            canvas.style.height = (isTop ? 150 : 120) + 'px';
-
-            const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-            gl.shaderSource(vertexShader, `
-                attribute vec2 position;
-                void main() { gl_Position = vec4(position, 0.0, 1.0); }
-            `);
-            gl.compileShader(vertexShader);
-
-            const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(fragmentShader, document.getElementById('blurShader').textContent);
-            gl.compileShader(fragmentShader);
-
-            const program = gl.createProgram();
-            gl.attachShader(program, vertexShader);
-            gl.attachShader(program, fragmentShader);
-            gl.linkProgram(program);
-            gl.useProgram(program);
-
-            const positionBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-
-            const positionLocation = gl.getAttribLocation(program, 'position');
-            gl.enableVertexAttribArray(positionLocation);
-            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-            gl.uniform2f(gl.getUniformLocation(program, 'resolution'), canvas.width, canvas.height);
-            gl.uniform1f(gl.getUniformLocation(program, 'topOrBottom'), isTop ? 1.0 : 0.0);
-
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        }
-
-        initBlurCanvas('topBlur', true);
-        initBlurCanvas('bottomBlur', false);
-        window.addEventListener('resize', () => {
-            initBlurCanvas('topBlur', true);
-            initBlurCanvas('bottomBlur', false);
-        });
-
-        // ─────────────────────────────────────────────
-        // TELEGRAM + MEMORY + UI
-        // ─────────────────────────────────────────────
-
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
-        let userId   = tg.initDataUnsafe?.user?.id         || 'анонимус';
-        let userName = tg.initDataUnsafe?.user?.first_name || 'незнакомец';
-
-        document.getElementById('userInfo').textContent = `id: ${userId}`;
-
-        const WORD_KEY = 'neural_memory_' + userId;
-        const CHAT_KEY = 'neural_chat_'   + userId;
-        const MAX_MEMORY = 1000;
-        const MAX_HISTORY = 50;
-
-        let memory = [];
-        let chatHistory = []; // [{text, type}]
-
-        const hasDeviceStorage = tg.isVersionAtLeast && tg.isVersionAtLeast('9.0') && tg.DeviceStorage;
-
-        function storageSet(key, value, cb) {
-            if (hasDeviceStorage) {
-                tg.DeviceStorage.setItem(key, value, cb);
-            } else {
-                try { localStorage.setItem(key, value); cb && cb(null, true); }
-                catch (e) { cb && cb(e); }
-            }
-        }
-
-        function storageGet(key, cb) {
-            if (hasDeviceStorage) {
-                tg.DeviceStorage.getItem(key, cb);
-            } else {
-                try { cb(null, localStorage.getItem(key)); }
-                catch (e) { cb(e); }
-            }
-        }
-
-        function saveMemory() {
-            storageSet(WORD_KEY, JSON.stringify(memory));
-        }
-
-        function saveHistory() {
-            storageSet(CHAT_KEY, JSON.stringify(chatHistory));
-        }
-
-        function loadAll(cb) {
-            let pending = 2;
-            const done = () => { if (--pending === 0) cb(); };
-
-            storageGet(WORD_KEY, (err, val) => {
-                if (!err && val) {
-                    try { memory = JSON.parse(val); } catch (e) { memory = []; }
-                }
-                done();
-            });
-
-            storageGet(CHAT_KEY, (err, val) => {
-                if (!err && val) {
-                    try { chatHistory = JSON.parse(val); } catch (e) { chatHistory = []; }
-                }
-                done();
-            });
-        }
-
-        const input = document.getElementById('messageInput');
-        input.addEventListener('input', function () {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        });
-
-        input.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        function sendMessage() {
-            const text = input.value.trim();
-            if (!text) return;
-
-            tg.HapticFeedback.impactOccurred('light');
-            addMessage(text, 'user', true);
-
-            const words = text.toLowerCase().match(/\b\w+\b/g) || [];
-            words.forEach(word => {
-                if (word.length > 2) memory.push(word);
-            });
-            if (memory.length > MAX_MEMORY) memory = memory.slice(-MAX_MEMORY);
-            saveMemory();
-            updateAccumulated();
-
-            input.value = '';
-            input.style.height = 'auto';
-
-            if (tg.isVersionAtLeast && tg.isVersionAtLeast('9.1')) {
-                tg.hideKeyboard();
-            }
-
-            showTyping();
-
-            const lastV = field.V_history.slice(-1)[0] || 0;
-            const preTension = Math.tanh(lastV * 3);
-            const baseDelay = 600 + Math.random() * 1000;
-            const delay = baseDelay * (1 - preTension * 0.4);
-
-            setTimeout(() => {
-                hideTyping();
-                const { text: response, behavior } = generateTeaseResponse(text);
-                addMessage(response, 'ai', true);
-
-                if (behavior.tension > 0.6) {
-                    tg.HapticFeedback.impactOccurred('rigid');
-                } else if (behavior.surprise > 0.4) {
-                    tg.HapticFeedback.notificationOccurred('warning');
-                } else {
-                    tg.HapticFeedback.selectionChanged();
-                }
-            }, delay);
-        }
-
-        function addMessage(text, type, persist) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.textContent = text;
-            messageDiv.appendChild(contentDiv);
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            if (persist) {
-                chatHistory.push({ text, type });
-                if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
-                saveHistory();
-            }
-        }
-
-        function showTyping() {
-            document.getElementById('typing').classList.add('active');
-            document.getElementById('neuralStatus').textContent = 'thinking';
-        }
-
-        function hideTyping() {
-            document.getElementById('typing').classList.remove('active');
-            document.getElementById('neuralStatus').textContent = 'listening';
-        }
-
-        function updateAccumulated() {
-            const accumulated = document.getElementById('accumulated');
-            const uniqueWords = [...new Set(memory)];
-            const wordCount   = uniqueWords.length;
-            const recentWords = uniqueWords.slice(-5).join(' • ');
-            accumulated.innerHTML = `${wordCount} слов<br><span style="font-size: 9px; color: #222;">${recentWords}</span>`;
-        }
-
-        function resetAll() {
-            memory = [];
-            chatHistory = [];
-            lastResponses = [];
-            field.x = 0; field.m = 0; field.theta = 0.5;
-            field.x_prev = 0; field.m_prev = 0; field.V_history = [];
-            saveMemory();
-            saveHistory();
-            document.getElementById('chatContainer').innerHTML = '';
-            updateAccumulated();
-            addMessage(`${userName}, чистый лист. начнём заново 😏`, 'ai', true);
-        }
-
-        // Settings item in the Mini App context menu — a real reset control,
-        // matching the "erase memory" implication the UI already makes.
-        if (tg.SettingsButton) {
-            tg.SettingsButton.show();
-            tg.SettingsButton.onClick(() => {
-                tg.showConfirm('стереть память и историю переписки?', (ok) => {
-                    if (ok) resetAll();
-                });
-            });
-        }
-
-        loadAll(() => {
-            updateAccumulated();
-
-            if (chatHistory.length) {
-                chatHistory.forEach(m => addMessage(m.text, m.type, false));
-            } else {
-                addMessage('∴ ну давай, скажи что-нибудь 😏', 'ai', true);
-            }
-
-            input.focus();
-        });
-    </script>
+  </footer>
+</div>
+
+<script>
+// ─── TELEGRAM STUB (testing outside a real client) ───
+if (!window.Telegram || !window.Telegram.WebApp) {
+  window.Telegram = { WebApp: {
+    initDataUnsafe: {}, expand() {}, ready() {}, hideKeyboard() {},
+    isVersionAtLeast() { return true; },
+    showConfirm(msg, cb) { cb && cb(window.confirm(msg)); },
+    HapticFeedback: { impactOccurred() {}, notificationOccurred() {}, selectionChanged() {} },
+    SettingsButton: { show() {}, hide() {}, onClick() {} },
+    DeviceStorage: {
+      setItem(key, value, cb) { try { localStorage.setItem(key, value); cb && cb(null, true); } catch (e) { cb && cb(e); } },
+      getItem(key, cb) { try { cb && cb(null, localStorage.getItem(key)); } catch (e) { cb && cb(e); } }
+    }
+  } };
+}
+
+// ─── LAGRANGIAN FIELD ENGINE (hidden from user) ───
+// L = T - V;  ṁ = -β·m + x;  dθ/dt = -η·∇θV
+const BETA = 0.15, LAMBD = 0.3, MU = 0.2, ETA = 0.05, DT = 1.0;
+
+const field = { x: 0, m: 0, theta: 0.5, x_prev: 0, m_prev: 0, V_history: [], t: 0 };
+
+function wordToScalar(text) {
+  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+  if (!words.length) return 0;
+  const avgLen = words.reduce((s, w) => s + w.length, 0) / words.length;
+  const unique = new Set(words).size / words.length;
+  return Math.tanh(avgLen * unique * 0.3);
+}
+
+function stepField(text) {
+  field.t += DT;
+  const x_new = wordToScalar(text);
+  const x_old = field.x;
+  const m_old = field.m;
+
+  const dx = x_new - x_old;
+  const dm_old = m_old - field.m_prev;
+  const T = 0.5 * (dx * dx + 0.5 * dm_old * dm_old);
+
+  const m_new = m_old + DT * (-BETA * m_old + x_old);
+  const x_hat = field.theta * x_old;
+
+  const V_pred = (x_new - x_hat) ** 2;
+  const V_couple = LAMBD * (x_new - x_old) ** 2;
+  const V_mem = MU * (m_new - x_new) ** 2;
+  const V = V_pred + V_couple + V_mem;
+  const L = T - V;
+
+  const grad_theta = -2 * (x_new - x_hat) * x_old;
+  const theta_new = field.theta - ETA * grad_theta;
+
+  field.x_prev = x_old;
+  field.m_prev = m_old;
+  field.x = x_new;
+  field.m = m_new;
+  field.theta = Math.max(0.01, Math.min(0.99, theta_new));
+
+  field.V_history.push(V);
+  if (field.V_history.length > 20) field.V_history.shift();
+
+  return { L, V, T, x_new, m_new, theta: field.theta, V_pred };
+}
+
+function fieldToBehavior(state) {
+  const V_avg = field.V_history.length
+    ? field.V_history.reduce((a, b) => a + b, 0) / field.V_history.length
+    : 0;
+  return {
+    tension: Math.tanh(state.V * 3),
+    memWeight: Math.abs(field.m),
+    surprise: state.V_pred ?? 0,
+    boredom: field.theta,
+    V_avg
+  };
+}
+
+// ─── RESPONSE GENERATION — driven by field state ───
+const teaseTemplates = [
+  (text) => `"${text}"... ахаха серьёзно? 😏`,
+  (text) => `${text}? ${text}! ахахаха 🙄`,
+  (text) => `"${text}" блять... смешно 😂`,
+  (text) => `${text}, ${text}, ${text}... скучно`,
+  (text) => `"${text}"... и чё дальше?`,
+  (text) => `оооо "${text}" какой умный 🤓`,
+  (text) => `${text}??? ты серьёзно сейчас?`,
+  (text) => `"${text}" - ну ну, продолжай 😼`,
+  (text) => `${text}... ага, конечно 🙃`,
+  (text) => `"${text}" типа да да 💅`,
+  (text) => `${text}! ${text}! довольна? 😏`,
+  (text) => `повторяешь "${text}"... зачем?`,
+  (text) => `бея! "${text}" ахахаха`,
+  (text) => `mmm "${text}" интересно`,
+  (text) => `"${text}" окей окей успокойся`,
+];
+
+const wordPlayTemplates = [
+  (text) => {
+    const words = text.split(' ');
+    if (words.length > 1) return `${words[0]}... ${words[0]}... ${words[words.length - 1]} 😏`;
+    return `${text}... ${text.slice(0, 3)}... ахаха`;
+  },
+  (text) => {
+    if (text.length > 5) return `"${text.slice(0, -2)}-${text.slice(0, -2)}-${text}" 🙄`;
+    return `"${text}-${text}" хихи`;
+  },
+  (text, recall) => recall
+    ? `так так... "${text}"... это прям как "${recall}" тогда`
+    : `так так... "${text}"... помню помню`
+];
+
+const normalResponses = ['интересно...', 'ага, слушаю', 'ну давай дальше', 'mmm окей', 'и?', '∴ понял тебя', 'дальше что?'];
+
+const tensionResponses = [
+  (text) => `${text}... это максимум? 😏`,
+  (text) => `ааа так вот ты какой 👀`,
+  (text) => `"${text}" — ты точно уверена?`,
+];
+
+const surpriseResponses = [
+  (text) => `о. "${text}". не ожидала 😶`,
+  (text) => `подожди... "${text}"?`,
+  (text) => `ты сломала логику. "${text}" 🌀`,
+];
+
+const boredomResponses = [
+  (text) => `предсказуемо... "${text}" 🙄`,
+  (text) => `знала что скажешь "${text}"`,
+  (text) => `скучно. "${text}" как обычно`,
+];
+
+const memoryResponses = [
+  (text, recall) => recall ? `опять как в тот раз с "${recall}"... запомнила` : `опять "${text}"... запомнила уже`,
+  (text, recall) => recall ? `"${recall}" тоже помню, если что` : `"${text}" снова? система устала`,
+  (text, recall) => recall ? `ты уже говорила "${recall}"... и теперь это?` : `это уже было. "${text}". помню`,
+];
+
+let lastResponses = [];
+
+function pickMemoryWord() {
+  if (memory.length < 6) return null;
+  const pool = memory.slice(0, -5);
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function pickResponse(userText, behavior) {
+  const { tension, memWeight, surprise, boredom } = behavior;
+  const recall = pickMemoryWord();
+
+  if (surprise > 0.4 && Math.random() < 0.7) {
+    const t = surpriseResponses[Math.floor(Math.random() * surpriseResponses.length)];
+    return t(userText);
+  }
+  if (tension > 0.6 && memWeight > 0.3 && Math.random() < 0.6) {
+    const t = memoryResponses[Math.floor(Math.random() * memoryResponses.length)];
+    return t(userText, recall);
+  }
+  if (boredom > 0.75 && Math.random() < 0.5) {
+    const t = boredomResponses[Math.floor(Math.random() * boredomResponses.length)];
+    return t(userText);
+  }
+  if (tension > 0.5 && Math.random() < 0.65) {
+    if (Math.random() > 0.5) {
+      const t = tensionResponses[Math.floor(Math.random() * tensionResponses.length)];
+      return t(userText);
+    } else {
+      const t = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
+      return t(userText);
+    }
+  }
+  if (Math.random() > 0.45) {
+    if (Math.random() > 0.6) {
+      const t = wordPlayTemplates[Math.floor(Math.random() * wordPlayTemplates.length)];
+      return t(userText, recall);
+    } else {
+      const t = teaseTemplates[Math.floor(Math.random() * teaseTemplates.length)];
+      return t(userText);
+    }
+  }
+  return normalResponses[Math.floor(Math.random() * normalResponses.length)];
+}
+
+function generateTeaseResponse(userText) {
+  // field steps once per message; retries only re-roll the template
+  const state = stepField(userText);
+  const behavior = fieldToBehavior(state);
+
+  let response;
+  let attempts = 0;
+  do {
+    response = pickResponse(userText, behavior);
+    attempts++;
+  } while (lastResponses.includes(response) && attempts < 4);
+
+  lastResponses.push(response);
+  if (lastResponses.length > 3) lastResponses.shift();
+
+  return { text: response, behavior };
+}
+
+// ─── TELEGRAM + THEME + MEMORY + UI ───
+let tg = window.Telegram.WebApp;
+tg.expand();
+tg.ready();
+
+const root = document.documentElement;
+// Android reports a performance class in the User-Agent; drop animations on LOW devices.
+if (/Android/i.test(navigator.userAgent) && /\bLOW\b/.test(navigator.userAgent)) root.classList.add('lite');
+
+function applyTheme() {
+  root.dataset.scheme = tg.colorScheme || 'dark';
+  const set = (method, ver) => {
+    if (typeof tg[method] === 'function' && tg.isVersionAtLeast(ver)) tg[method]('bg_color');
+  };
+  set('setHeaderColor', '6.1');
+  set('setBackgroundColor', '6.1');
+  set('setBottomBarColor', '7.10');
+}
+applyTheme();
+if (typeof tg.onEvent === 'function') tg.onEvent('themeChanged', applyTheme);
+
+let userId = tg.initDataUnsafe?.user?.id || 'анонимус';
+let userName = tg.initDataUnsafe?.user?.first_name || 'незнакомец';
+
+document.getElementById('userInfo').textContent = `id: ${userId}`;
+
+const WORD_KEY = 'neural_memory_' + userId;
+const CHAT_KEY = 'neural_chat_' + userId;
+const MAX_MEMORY = 1000;
+const MAX_HISTORY = 50;
+
+let memory = [];
+let chatHistory = []; // [{text, type}]
+
+const hasDeviceStorage = tg.isVersionAtLeast && tg.isVersionAtLeast('9.0') && tg.DeviceStorage;
+
+function storageSet(key, value, cb) {
+  if (hasDeviceStorage) {
+    tg.DeviceStorage.setItem(key, value, cb);
+  } else {
+    try { localStorage.setItem(key, value); cb && cb(null, true); }
+    catch (e) { cb && cb(e); }
+  }
+}
+
+function storageGet(key, cb) {
+  if (hasDeviceStorage) {
+    tg.DeviceStorage.getItem(key, cb);
+  } else {
+    try { cb(null, localStorage.getItem(key)); }
+    catch (e) { cb(e); }
+  }
+}
+
+function saveMemory() { storageSet(WORD_KEY, JSON.stringify(memory)); }
+function saveHistory() { storageSet(CHAT_KEY, JSON.stringify(chatHistory)); }
+
+function loadAll(cb) {
+  let pending = 2;
+  const done = () => { if (--pending === 0) cb(); };
+
+  storageGet(WORD_KEY, (err, val) => {
+    if (!err && val) { try { memory = JSON.parse(val); } catch (e) { memory = []; } }
+    done();
+  });
+  storageGet(CHAT_KEY, (err, val) => {
+    if (!err && val) { try { chatHistory = JSON.parse(val); } catch (e) { chatHistory = []; } }
+    done();
+  });
+}
+
+const input = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const chatContainer = document.getElementById('chatContainer');
+
+function syncSend() { sendBtn.disabled = !input.value.trim(); }
+
+input.addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  syncSend();
+});
+
+input.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  const text = input.value.trim();
+  if (!text) return;
+
+  tg.HapticFeedback.impactOccurred('light');
+  addMessage(text, 'user', true);
+
+  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+  words.forEach(word => { if (word.length > 2) memory.push(word); });
+  if (memory.length > MAX_MEMORY) memory = memory.slice(-MAX_MEMORY);
+  saveMemory();
+  updateAccumulated();
+
+  input.value = '';
+  input.style.height = 'auto';
+  syncSend();
+
+  if (tg.isVersionAtLeast && tg.isVersionAtLeast('9.1')) tg.hideKeyboard();
+
+  showTyping();
+
+  const lastV = field.V_history.slice(-1)[0] || 0;
+  const preTension = Math.tanh(lastV * 3);
+  const baseDelay = 600 + Math.random() * 1000;
+  const delay = baseDelay * (1 - preTension * 0.4);
+
+  setTimeout(() => {
+    hideTyping();
+    const { text: response, behavior } = generateTeaseResponse(text);
+    addMessage(response, 'ai', true);
+
+    if (behavior.tension > 0.6) tg.HapticFeedback.impactOccurred('rigid');
+    else if (behavior.surprise > 0.4) tg.HapticFeedback.notificationOccurred('warning');
+    else tg.HapticFeedback.selectionChanged();
+  }, delay);
+}
+
+function addMessage(text, type, persist) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${type}`;
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  contentDiv.textContent = text;
+  messageDiv.appendChild(contentDiv);
+  chatContainer.appendChild(messageDiv);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  if (persist) {
+    chatHistory.push({ text, type });
+    if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
+    saveHistory();
+  }
+}
+
+function showTyping() {
+  document.getElementById('typing').classList.add('active');
+  document.getElementById('neuralStatus').textContent = 'thinking';
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function hideTyping() {
+  document.getElementById('typing').classList.remove('active');
+  document.getElementById('neuralStatus').textContent = 'listening';
+}
+
+function updateAccumulated() {
+  const uniqueWords = [...new Set(memory)];
+  const recentWords = uniqueWords.slice(-5).join(' • ');
+  document.getElementById('accumulated').textContent =
+    `${uniqueWords.length} слов` + (recentWords ? ` • ${recentWords}` : '');
+}
+
+function resetAll() {
+  memory = [];
+  chatHistory = [];
+  lastResponses = [];
+  field.x = 0; field.m = 0; field.theta = 0.5;
+  field.x_prev = 0; field.m_prev = 0; field.V_history = [];
+  saveMemory();
+  saveHistory();
+  chatContainer.innerHTML = '';
+  updateAccumulated();
+  addMessage(`${userName}, чистый лист. начнём заново 😏`, 'ai', true);
+}
+
+// Native Settings item in the Mini App context menu → reset
+if (tg.SettingsButton) {
+  tg.SettingsButton.show();
+  tg.SettingsButton.onClick(() => {
+    tg.showConfirm('стереть память и историю переписки?', (ok) => { if (ok) resetAll(); });
+  });
+}
+
+loadAll(() => {
+  updateAccumulated();
+  if (chatHistory.length) chatHistory.forEach(m => addMessage(m.text, m.type, false));
+  else addMessage('∴ ну давай, скажи что-нибудь 😏', 'ai', true);
+  syncSend();
+  input.focus();
+});
+</script>
 </body>
 </html>
